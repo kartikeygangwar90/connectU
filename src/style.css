@@ -196,3 +196,264 @@
 .signup1 input{
     height: 80%;
 }
+
+
+/* So here upto which we have designed our Authentication form  */
+/*    ----------------------------------------------         */
+/* Lets continue with the Styling of Profile filling form  */
+
+
+
+.complete--page--p{
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+
+.complete--page--p #page--heading{
+    margin: 20px auto 10px auto;
+    color: blue;
+    font-weight: bolder;    
+}
+
+.complete--page--p .boxes{
+    width: 80%;
+    max-width: 1000px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: 1fr;
+    /* border: 2px solid black; */
+    justify-content: space-evenly;
+    margin: 40px auto 20px auto;
+}
+.complete--page--p .box{
+    /* border: 1px dashed red; */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.complete--page--p .box h4{
+    font-size: small;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.complete--page--p .box p{
+    font-size:x-small;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.complete--page--p .circle{
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    align-content: center;
+    border: 2px solid rgb(74, 73, 73);
+    background-color: rgba(245, 245, 220, 0.605);
+    color: rgba(114, 111, 111, 0.889);
+}
+
+/*  ---------------------------------------------    */
+
+/* Designing of first page of Personal Info  */
+
+.info--section--p{
+    display: grid;
+    grid-gap: 10px 10px;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(13, 0.9fr) 1.3fr;
+    align-items: end;
+    width: 70%;
+    max-width: 900px;
+    box-sizing: border-box;
+    height: 700px;
+    padding: 20px;
+    border: 1px solid gray;
+    box-sizing: border-box;
+    box-shadow: 1px 2px 1px 1px gray;
+    justify-self: center;
+    text-align: start;
+    align-self: center;
+    text-indent: 4px;
+}
+
+.required{
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+.info--section--p .head-tag{
+    grid-column: 1/ 3;
+    color: blue;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: larger;
+    margin: 0px;
+}
+.info--section--p .tag{
+    grid-column: 1/ 3;
+    grid-row: 2/ 3;
+    font-size: small;
+    align-self: flex-start;
+    margin: 0px;
+    
+}
+.info--section--p .full--name{
+    grid-column: 1/ 3;
+    border: 0.7px solid rgb(104, 100, 100);
+    border-radius: 7px;
+    text-indent: 10px;
+    height: 100%;
+    margin-top: 0px;
+}
+.info--section--p .email--heading{
+    grid-row: 5/ 6;
+}
+.info--section--p .email--input{
+    grid-column: 1/ 3;
+    border: 0.7px solid rgb(104, 100, 100);
+    border-radius: 7px;
+    text-indent: 10px;
+    height: 100%;
+}
+.info--section--p .college--input{
+    grid-row: 7/ 8;
+}
+.info--section--p .options--college{
+    grid-row: 8/ 9;
+    grid-column: 1/ 2;
+    border: 0.7px solid rgb(104, 100, 100);
+    border-radius: 7px;
+    text-indent: 10px;
+    height: 100%;
+}
+.info--section--p .options--year{
+    grid-column: 2/ 3;
+    border: 0.7px solid rgb(104, 100, 100);
+    border-radius: 7px;
+    text-indent: 10px;
+    height: 100%;
+}
+.info--section--p .options--branch{
+    grid-column: 1/ 2;
+    border: 0.7px solid rgb(104, 100, 100);
+    border-radius: 7px;
+    text-indent: 10px;
+    height: 100%;
+}
+.info--section--p .bio--heading{
+    grid-row: 11/ 12;
+}
+.info--section--p .bio--input{
+    grid-row: 12/ 14;
+    grid-column: 1/ 3;
+    border: 0.7px solid rgb(104, 100, 100);
+    border-radius: 7px;
+    text-indent: 10px;
+    height: 100%;
+}
+.info--section--p #prev{
+    grid-row: 14/ 15;
+    grid-column: 1/ 2;
+    border: 1px solid gray;
+    border-radius: 10px;
+    background-color: aliceblue;
+    color: rgba(0, 0, 0, 0.459);
+    height: 100%;
+    cursor: pointer;
+    width: 40%;
+}
+.info--section--p #nextt{
+    grid-row: 14/ 15;
+    grid-column: 2/ 3;
+    border-radius: 10px;
+    background-color: blue;
+    color: white;
+    height: 100%;
+    width: 90%;
+    cursor: pointer;
+}
+
+/* Designing of Second page of skills -----------> */
+
+.skills--info--p {
+    width: 70%;
+    max-width: 900px;
+    height: fit-content;
+    padding: 20px;
+    border: 1px solid gray;
+    box-sizing: border-box;
+    box-shadow: 1px 2px 1px 1px gray;
+    justify-self: center;
+    text-align: start;
+    text-indent: 4px;
+    align-self: center;
+}
+.skills--info--p .technical--heading{
+    margin: 10px auto 5px 0px;
+    color: blue;
+}
+
+.skills--info--p .head-tag{
+    color: blue;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: larger;
+}
+
+.skills--info--p .skills{
+    margin: 5px;
+
+}
+.skills--info--p .suggestion{
+    margin: 10px;
+    padding: 8px;
+    width: fit-content;
+    border-radius: 20px;
+    background-color: rgba(205, 205, 199, 0.705);
+}
+.skills--info--p .suggestion:hover{
+    background-color:  rgba(138, 138, 136, 0.705);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.skills--info--p .suggestion--clicked{
+    background-color: blue;
+    color: white;
+}
+
+.skills--info--p .skill--input--area{
+    display: flex;
+    margin: 5px;
+}
+
+.skills--info--p .skill--input{
+    width: 90%;
+    border-radius: 10px;
+    text-indent: 10px;
+    height: 40px;
+    margin-right: 10px;
+}
+
+.skills--info--p .skill--input--area .add--skill{
+    border: none;
+    color: white;
+    width: 70px;
+    background: linear-gradient(rgba(63, 63, 216, 0.673));
+    border-radius: 15px;
+    font-size:medium;  
+    cursor: pointer;
+}
+.skills--info--p .skill--input--area .add--skill::before{
+    content: "+";
+    font-size: 22px;          /* makes + larger */
+    font-weight: bold;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.skills--info--p .skill-choosen{
+    width: 100%;
+    height: fit-content;
+    border: 2px solid red;
+}
+
+
+

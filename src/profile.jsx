@@ -157,7 +157,7 @@
 
 
 import React from "react";
-import './styling.css'
+// import './styling.css'
 
 function ProfileSetup() {
 
@@ -238,7 +238,7 @@ function ProfileSetup() {
                     </div>
                 </div>
 
-                {step === 1 && <div className="info--section block">
+                {step === 1 && <div className="info--section">
                     <h3 class="head-tag">Personal Info</h3>
                     <p class="tag">Lets start with the basics</p>
                     <h5>Full Name <span className="required">*</span></h5>
@@ -297,14 +297,23 @@ function ProfileSetup() {
                     <button id="nextt" className={`next ${step === 4 ? "preview-active" : ""}`} onClick={step === 4 ? Preview : nextStep} >{step === 4 ? "Preview" : "next"}</button>
                 </div>
                 }
-                {step === 2 && <div className="skills--info block">
-                    <h3 class="head-tag">Your Skills</h3>
-                    <p class="tag">Let others discover what you bring to a team</p>
-                    <h5>Technical Skills</h5>
+                {step === 2 && <div className="skills--info">
+                    <h3 class="head-tag skills">Your Skills</h3>
+                    <p class="tag skills">Let others discover what you bring to a team</p>
+                    <h5 id="technical--heading">Technical Skills <span className="required">*</span></h5>
                     <p className="tag">Add skills you can Confidently contribute</p>
                     <button className="suggestion" onClick={() => addSkills("React JS")}>React JS &gt;</button>
                     <button className="suggestion" onClick={() => addSkills("Node.Js")}>Node.js &gt;</button>
                     <button className="suggestion" onClick={() => addSkills("UI/UX Designer")}>UI/UX Designer &gt;</button>
+                    <button className="suggestion" onClick={() => addSkills("UI/UX Designer")}>Machine Learning &gt;</button>
+                    <button className="suggestion" onClick={() => addSkills("UI/UX Designer")}>Marketing &gt;</button>
+                    <button className="suggestion" onClick={() => addSkills("UI/UX Designer")}>Robotics &gt;</button>
+                    <input
+                     type="text"
+                       id="skill--input"
+                       placeholder="Add custom skill ..." 
+
+                       />
                 </div>
 
                 }

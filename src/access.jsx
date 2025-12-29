@@ -72,14 +72,15 @@ function Access() {
     <div className="container-main">
       <div className="container">
         <h2>Secure Access</h2>
-
-        <button className="login" onClick={wantLogin}>
+        <div className="choosing--buttons">
+        <button className={`option ${option ? "choosen" : ""} `} onClick={wantLogin}>
           Login
         </button>
 
-        <button className="signUp" onClick={wantSignUp}>
+        <button className = {`signUp ${option ? "" : "choosen"}`} onClick={wantSignUp}>
           Sign Up
         </button>
+        </div>
 
         {option && (
           <form id="login-form" className="login1" onSubmit={handleLogin}>
@@ -121,7 +122,7 @@ function Access() {
           </h5>
         )}
         {option && (
-          <div className="footer1 footer-display">
+          <div className={`${option ? "footer-login" : "footer-signup"}`}>
             <input
               type="checkbox"
               name="policy-checkbox1"
@@ -181,7 +182,7 @@ function Access() {
           </form>
         )}
         {option === false && (
-          <div className="footer2 footer-display">
+          <div className={`${option ? "footer-login" : "footer-signup"}`}>
             <input
               type="checkbox"
               name="policy-checkbox2"

@@ -259,7 +259,7 @@
 
 .info--section--p{
     display: grid;
-    grid-gap: 10px 10px;
+    grid-gap: 0px 10px;
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(13, 0.9fr) 1.3fr;
     align-items: end;
@@ -334,7 +334,7 @@
     height: 100%;
 }
 .info--section--p .options--branch{
-    grid-column: 1/ 2;
+    grid-column: 1/ 3;
     border: 0.7px solid rgb(104, 100, 100);
     border-radius: 7px;
     text-indent: 10px;
@@ -361,6 +361,7 @@
     height: 100%;
     cursor: pointer;
     width: 40%;
+    margin: 8px auto auto 10px;
 }
 .info--section--p #nextt{
     grid-row: 14/ 15;
@@ -371,6 +372,74 @@
     height: 100%;
     width: 90%;
     cursor: pointer;
+    margin: 8px 10px auto auto;
+}
+
+@media (max-width : 768px){
+    .complete--page--p .render{
+        display: none;
+    }
+    .info--section--p{
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 0.5fr 0.5fr 0.5fr 1fr 0.5fr 1fr 0.5fr 1fr 0.5fr 1fr 0.5fr 1fr 0.5fr 1fr 1fr;
+        box-sizing: border-box;
+        height: fit-content;
+        grid-gap: 0px;
+        width: 90%;
+    }
+     .info--section--p .full--name{
+        align-self: flex-start;
+        height: 70%;
+     }
+     .info--section--p .email--input{
+        align-self: flex-start;
+        height: 70%;
+     }
+    .info--section--p .options--college{
+        align-self: flex-start;
+        height: 70%;
+    }
+    .info--section--p .year--heading{
+        grid-column: 1/ 2;
+    }
+    .info--section--p .options--year{
+        grid-column: 1/ 2;
+        align-self: flex-start;
+        height: 70%;
+    }
+    .info--section--p .branch--heading{
+        grid-column: 1/ 2;
+        grid-row: 11/ 12;
+    }
+    .info--section--p .options--branch{
+        grid-column: 1/ 2;
+        grid-row: 12/ 13;
+        align-self: flex-start;
+        height: 70%;
+    }
+    .info--section--p .bio--heading{
+        grid-column: 1/ 2;
+        grid-row: 13/ 14;
+    }
+    .info--section--p .bio--input{
+        grid-column: 1/ 2;
+        grid-row: 14/15;
+        align-self: flex-end;
+    }
+    .info--section--p #prev{
+        grid-column: 1/ 2;
+        grid-row: 15/ 16;
+        align-self: flex-start;
+        margin-top: 8px;
+    }
+    .info--section--p #nextt{
+        grid-column: 1/ 2;
+        grid-row: 15/ 16;
+        justify-self: end;
+        width: 40%;
+        margin: 8px 10px auto auto;
+    }
 }
 
 /* Designing of Second page of skills -----------> */
@@ -387,6 +456,7 @@
     text-align: start;
     text-indent: 4px;
     align-self: center;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 .skills--info--p .technical--heading{
     margin: 10px auto 5px 0px;
@@ -403,14 +473,20 @@
     margin: 5px;
 
 }
-.skills--info--p .suggestion{
-    margin: 10px;
+.skills--info--p .suggestion,.suggestion--softskill{
+    margin: 5px 2px 2px 5px ;
     padding: 8px;
     width: fit-content;
     border-radius: 20px;
-    background-color: rgba(205, 205, 199, 0.705);
+    color: rgb(51, 47, 47);
+    background-color: rgba(218, 215, 215, 0.971);
+    cursor: pointer;
 }
 .skills--info--p .suggestion:hover{
+    background-color:  rgba(138, 138, 136, 0.705);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.suggestion--softskill:hover{
     background-color:  rgba(138, 138, 136, 0.705);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -432,7 +508,7 @@
     margin-right: 10px;
 }
 
-.skills--info--p .skill--input--area .add--skill{
+.skills--info--p .add--skill{
     border: none;
     color: white;
     width: 70px;
@@ -441,19 +517,68 @@
     font-size:medium;  
     cursor: pointer;
 }
-.skills--info--p .skill--input--area .add--skill::before{
+.skills--info--p .add--skill::before{
     content: "+";
     font-size: 22px;          /* makes + larger */
     font-weight: bold;
     margin-right: 6px;
     vertical-align: middle;
 }
+.skills--info--p .add--skill:hover{
+    background-color: #2D728F;
+    color: white;
+}
+
+.skills--info--p .softSkill--input--area{
+    display: flex;
+    margin: 5px;
+}
+.skills--info--p .softSkill--input{
+    width: 90%;
+    border-radius: 10px;
+    text-indent: 10px;
+    height: 40px;
+    margin-right: 10px;    
+}
+
 
 .skills--info--p .skill-choosen{
     width: 100%;
     height: fit-content;
-    border: 2px solid red;
+    /* border: 2px solid red; */
+    display: flex;
+    flex-wrap: wrap;   
+}
+.skills--info--p .skill-choosen .skills{
+    height: fit-content;
+    width: fit-content;
+    border: 2px solid #2D728F;
+    border-radius: 20px;
+    padding: 4px;
+    cursor: pointer;
 }
 
+.skills--info--p .exp--boxes{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-evenly;
+}
+.skills--info--p .exp--boxes .exp--box{
+    height: fit-content;
+    width: 40%;
+    margin: 10px;
+    padding: 15px 8px 15px 8px;
+    text-align: center;
+    border: 1px solid #58A4B0;
+    border-radius: 20px;
+    cursor: pointer;
+    background-color: #8fc6ce53;
+}
 
-
+.skills--info--p .exp--boxes .clicked--exp{
+    background-color: rgba(173, 111, 230, 0.564);
+    color: black;
+    font-size: large;
+    font-weight: bold;
+}

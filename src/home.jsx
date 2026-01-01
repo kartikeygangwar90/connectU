@@ -9,6 +9,16 @@ const Home = () => {
     howItWorkRef.current.scrollIntoView({ behavior: "smooth" });
   }
 
+  const home = useRef(null);
+  const scrollHome = () => {
+    home.current.scrollIntoView({ behavior: "smooth" });
+  }
+
+  const about = useRef(null);
+  const scrollAbout = () => {
+    about.current.scrollIntoView( {behavior: "smooth" });
+  }
+
   const words = ["Connect","Collborate", "Create", "Explore"];
 
   const [typedWord, setTypedWord] = React.useState("");
@@ -51,7 +61,7 @@ const Home = () => {
         <a href='#' className='Home--btn'>Home</a>
         <button onClick={scrollHowItWorks} className='btn--howItWorks'>How It Works ?</button>
       </div>
-      <section className='section--home'>
+      <section className='section--home' ref={home}>
         <div className="logo--section">
           <h1 className='connectu--heading'>
             connect<span>U</span>
@@ -64,7 +74,7 @@ const Home = () => {
         </div>
         <button className='getStarted--btn'>Get Started</button>
       </section>
-      <section className='web--description'>
+      <section className='web--description' ref={about}>
         <p className='intro--text'>We help you to </p>
 
         <h2 className='typing--line'>
@@ -80,7 +90,29 @@ const Home = () => {
         <h4 className='conclusion'>connectU connects students, ideas, and opportunities—so no ambition goes unheard or unsupported.</h4>
       </section>
       <section className='section--howItWorks' ref={howItWorkRef}>
-        <h2>How it works !!</h2>
+        <h2 className='working--heading'>How it works !!</h2>
+        <div className="working--boxes">
+          <div className="working--box">
+            <h3>Register & Set Up Your Profile</h3>
+            <p>"Share your skills, interests, availability, and Contact Info"</p>
+          </div>
+          <div className="working--box">
+            <h3>Search & Filter for Teammates</h3>
+            <p>"Use smart filters to find ideal team members."</p>
+          </div>
+          <div className="working--box">
+            <h3>Connect & Build Teams</h3>
+            <p>"Send requests and form your team instantly"</p>
+          </div>
+        </div>
+      </section>
+      <section className='section--footer'>
+        <div className="footer--content">
+          <h2>connectU</h2>
+          <button className='navigation--btn' onClick={scrollHome}>Home</button><span>|</span>
+          <button className='navigation--btn'onClick={scrollAbout}>About</button><span>|</span>
+          <button className='navigation--btn'>Contact</button>
+        </div>
       </section>
 
     </div>

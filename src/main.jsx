@@ -25,9 +25,7 @@ reactDOM.createRoot(document.getElementById("root")).render(
           <Route
             path="/profile"
             element={
-              <PrivateRoute>
                 <Profile />
-              </PrivateRoute>
             }
           />
           <Route
@@ -36,7 +34,11 @@ reactDOM.createRoot(document.getElementById("root")).render(
           />
           <Route
           path="/home"
-          element = {<Home />}
+          element = {
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
           />
         </Routes>
       </AuthProvider>

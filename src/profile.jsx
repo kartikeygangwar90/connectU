@@ -1,164 +1,9 @@
-// import React from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { useAuth } from './AuthContext';
-
-// function Profile () {
-//   const { user, logOut } = useAuth();
-//   const navigate = useNavigate();
-//   const handleLogout = async () => {
-//     await logOut();
-//     navigate("/login", { replace : true });
-//   };
-
-
-//     // JS part of this Profile page ----->
-
-//     // Setting the forward procedding setup
-//     const [step, setStep] = React.useState(1);
-
-//     const nextStep = () => {
-//         // processing[step - 1].style.backgroundColor = "blue"
-//         if (step < 4) setStep(step + 1);
-
-//     };
-//     const prevStep = () => {
-//         // processing[step - 2].style.backgroundColor = "white"
-//         if (step > 1) setStep(step - 1);
-//     };
-
-//     // Checking and Storing the User's data in Firebase-> FireStore
-
-//     const [userData, setUserData] = React.useState({
-//         firstName: "",
-//         lastName: "",
-//         gender: "",
-//         roll: "",
-//         college: "",
-//         course: "",
-//         branch: "",
-//         year: "",
-//         skills: [],
-//         interests: [],
-//         email: "",
-//         phone: "",
-//         availability: ""
-//     })
-
-//     // Heading up further to the profile preview page
-
-//     function Preview () {
-//         console.log("Final UserData is : ", userData);
-//         // navigate("/navbar", {replace : true})
-//     }
-
-
-//   return (
-//     <main>
-//             {/* // page dividing section  */}
-
-//             <div className="propage">
-
-//             <h1>Profile Completion </h1>
-//             <div className="completion">
-//                 {[2, 3, 4, 5].map(i => (
-//                     <div
-//                         key={i}
-//                         className={`step-completion ${step >= i ? "active" : ""}`}
-//                     ></div>
-//                 ))}
-//             </div>
-
-
-//             {/* // Personal Information  */}
-
-//             {step === 1 && (
-//                 // <BasicIdentity
-//                 //     userData={userData}
-//                 //     setUserData={setUserData}
-//                 // />
-//                 <div className="container page">
-//             <h2 className='heading'>Step - 1 : Basic Identity</h2>
-//             <div className="card1">
-//                 <h4 className='fhname'>First Name : </h4>
-//                 <input type="text" value={userData.firstName} placeholder='First name here' className='fname' onChange={(e) =>
-//                     setUserData({ ...userData, firstName: e.target.value })
-//                 }
-//                 />
-//                 <h4 className='lhname'>Last Name : </h4>
-//                 <input type="text" className="lname" placeholder='Last name here' value={userData.lastName} onChange={(e) =>
-//                     setUserData({ ...userData, lastName: e.target.value })
-//                 } />
-//                 <h4 className='gender'>Gender : </h4>
-//                 <input type="radio" name="gender" className="male-inp" className='male' value="Male" checked={userData.gender === "Male"} onChange={(e) =>
-//                     setUserData({ ...userData, gender: e.target.value })
-//                 }></input><h4 className='male' className='Male'>Male</h4>
-//                 <input type="radio" name="gender" className="female-inp" className='female' value="Female" checked={userData.gender === "Female"} onChange={(e) =>
-//                     setUserData({ ...userData, gender: e.target.value })
-//                 } /><h4 className='female' className='Female'>Female</h4>
-//                 <input type="radio" name="gender" className="other-inp" className='other' value="Other" checked={userData.gender === "Other"} onChange={(e) =>
-//                     setUserData({ ...userData, gender: e.target.value })
-//                 } /><h4 className='other' className='Other'>Other</h4>
-//                 <h4 className='roll-head'>Roll number : </h4>
-//                 <input type="text" inputMode='numeric' pattern='[0-9]' className="roll" placeholder='Enter Roll number ' value={userData.roll} onChange={(e) =>
-//                     setUserData({ ...userData, roll: e.target.value })
-//                 } />
-//             </div>
-//         </div>
-//             )}
-
-
-//             {/* // College Information  */}
-
-//             {step === 2 && (
-//                 <CollegeInfo
-//                     userData={userData}
-//                     setUserData={setUserData}
-//                 />
-//             )}
-
-
-//             {/* // Interest and Skills Information  */}
-
-//             {step === 3 && (
-//                 <InterestSkills
-//                     userData={userData}
-//                     setUserData={setUserData}
-//                 />
-//             )}
-
-//             {/* Personal Information  */}
-
-//             {step === 4 && (
-//                 <PersonalInfo
-//                     userData={userData}
-//                     setUserData={setUserData}
-//                 />
-//             )}
-
-//             </div>
-
-//             {/* Buttons Setup for procedding forward */}
-
-//             <div className="btns">
-//                 <button className='previous' onClick={prevStep} disabled={step === 1} >Previous</button>
-//                 <button className={`next ${step === 4 ? "preview-active" : ""}`} onClick={step === 4 ? Preview : nextStep} >{step === 4 ? "Preview" : "next"}</button>
-//                 {/* {step === 4 && <button className={`next ${isPreviewReady ? "preview-active" : ""}`} onClick={Preview} >Preview</button>} */}
-//             </div>
-
-//         </main>
-//     // <>
-//     //   <h1>Hey I am on profile page welcome {user.email}</h1>
-//     //   <button onClick={handleLogout}>Logout</button>
-//     // </>
-//   )
-// }
-
-// export default Profile
-
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import './style.css'
+import { useNavigate } from "react-router-dom";
+import { doc, updateDoc } from "firebase/firestore";
+import{ auth, dataBase } from "./firebase"
 
 function ProfileSetup() {
 
@@ -188,7 +33,8 @@ function ProfileSetup() {
         nitpemail: "",
         pemail: "",
         phone: "",
-        availability: ""
+        availability: "",
+        profileCompleted: true
     })
 
     // Logic for step 2 starts here ------------------>
@@ -257,8 +103,15 @@ function ProfileSetup() {
             availability: prev.availability === value ? "" : value
         }))
     }
+    // for navigating to the next page ------------------>
     const navigate = useNavigate();
-    const routeHomePage = () => {
+    const routeHomePage = async () => {
+        const uid = auth.currentUser.uid;
+
+        await updateDoc(doc(dataBase, "users", uid), {
+            ...userData,
+            profileCompleted: true,
+        });
         navigate("/home", {replace : true})
     }
     //  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -722,8 +575,6 @@ function ProfileSetup() {
                             </button>
                         </div>
                 </div>
-
-
                 }
             </div>
         </main>

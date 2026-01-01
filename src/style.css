@@ -1076,3 +1076,69 @@
         width: 90%;
     }
 }
+
+
+/* -------------------------------------------------- */
+
+/*  ------------Styling of Main Page or the description Page !! */
+
+.connectU--m{
+    width: 100%;
+    height: fit-content;
+}
+
+.connectU--m .main--logo{
+    width: 10%;
+    height: 10%;
+    border-radius: 50%;
+    justify-self: start;
+    margin-left: 0px;
+    margin-right: auto;
+}
+
+.connectU--m .nav--bar{
+    display: flex;
+    /* border: 2px solid blue; */
+    justify-content: end;
+    /* background: rgba(69, 69, 237, 0.95); */
+    /* backdrop-filter: blur(10px); */
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    margin: 10px 0px;
+}
+
+
+.connectU--m .Home--btn{
+    align-self: center;
+    margin-right: 20px;
+    text-decoration: none;
+    color: #111827;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+.connectU--m .btn--howItWorks{
+    align-self: center;
+    margin-left: 20px;
+    margin-right: 20px;
+    border: none;
+    color: #111827;
+    cursor: pointer;
+    background-color: white;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.connectU--m .section--home{
+    height: 600px;
+    width: 90%;
+    border: 4px solid black;
+    scroll-margin-top: 80px;
+
+}
+
+.connectU--m .section--howItWorks{
+    height: 600px;
+    width: 90%;
+    border: 4px solid Red;
+    scroll-margin-top: 80px;
+
+}

@@ -8,6 +8,8 @@ import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { dataBase } from "./firebase";
 
 function Access() {
   const [option, setOption] = React.useState(true);
@@ -26,11 +28,30 @@ function Access() {
 
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  // useEffect(() => {
+  //   if (!loading && user) {
+  //     navigate("/profile", { replace: true })
+  //   }
+  // }, [user, loading, navigate])
   useEffect(() => {
-    if (!loading && user) {
-      navigate("/profile", { replace: true })
-    }
-  }, [user, loading, navigate])
+    const redirectUser = async () => {
+      if(loading) return;
+
+      if(user) {
+        const userRef = doc(dataBase, "users", user.uid);
+        const snap = await getDoc(userRef);
+
+        if(snap.exists() && snap.data().profileCompleted) {
+          navigate("/home", {replace: true});
+        }
+        else{
+          navigate("/profile", {replace: true});
+        }
+      }
+    };
+
+    redirectUser();
+  }, [user, loading, navigate]);
 
   async function handleLogin(e) {
     e.preventDefault();

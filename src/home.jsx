@@ -66,7 +66,7 @@ const Home = () => {
     <div className='connectU--m'>
       <div className="nav--bar">
         <img src={logo} alt="logo" className='main--logo' />
-        <a href='#' className='Home--btn'>Home</a>
+        <button className='btn--home' onClick={scrollHome}>Home</button>
         <button onClick={scrollHowItWorks} className='btn--howItWorks'>How It Works ?</button>
       </div>
       <section className='section--home' ref={home}>

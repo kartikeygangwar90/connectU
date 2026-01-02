@@ -2,7 +2,8 @@ import React from "react";
 import reactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navigate } from "react-router-dom";
-import { AuthProvider } from "./AuthContext"
+import { AuthProvider } from "./AuthContext";
+import { TeamProvider } from "./context/TeamContext";
 import Access from "./access";
 import Profile from "./profile";
 import PrivateRoute from "./privateRoute";
@@ -15,14 +16,8 @@ reactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route
-            path="/"
-            element={<Navigate to="/login" replace />}
-          />
-          <Route
-            path="/login"
-            element={<Access />}
-          />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Access />} />
           <Route
             path="/profile"
             element={
@@ -31,23 +26,23 @@ reactDOM.createRoot(document.getElementById("root")).render(
               </PrivateRoute>
             }
           />
+          <Route path="/policy" element={<Policy />} />
           <Route
-            path="/policy"
-            element={<Policy />}
+            path="/home"
+            element={
+              <PrivateRoute>
+                <Home />
+              </PrivateRoute>
+            }
           />
           <Route
-          path="/home"
-          element = {
-            <PrivateRoute>
-              <Home />
-            </PrivateRoute>
-          }
-          />
-          <Route
-          path="/mainpage"
-          element = {<Mainpage />}
-          >
-          </Route>
+            path="/mainpage"
+            element={
+              <TeamProvider>
+                <Mainpage />
+              </TeamProvider>
+            }
+          ></Route>
         </Routes>
       </AuthProvider>
     </BrowserRouter>

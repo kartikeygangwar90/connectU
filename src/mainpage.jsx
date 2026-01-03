@@ -3,6 +3,7 @@ import "./style.css";
 import data from "./eventsData";
 import { useContext } from "react";
 import { TeamContext } from "./context/TeamContext";
+import logo from "./assets/connectU_logo.png"
 
 const Mainpage = () => {
   const { teams, addTeam, loadingTeams } = useContext(TeamContext);
@@ -73,7 +74,7 @@ const Mainpage = () => {
     <div className="mainpage--mp">
       <div className="header--navbar">
         <img
-          src="/images/connectU_logo.png"
+          src={logo}
           alt="logo"
           className="mainlogo"
         />

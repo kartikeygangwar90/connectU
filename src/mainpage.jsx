@@ -3,7 +3,7 @@ import "./style.css";
 import data from "./eventsData";
 import { useContext } from "react";
 import { TeamContext } from "./context/TeamContext";
-import logo from "./assets/connectU_logo.png";
+import logo from "./assets/connect.png";
 import { doc, getDoc} from "firebase/firestore";
 import { auth, dataBase } from "./firebase";
 

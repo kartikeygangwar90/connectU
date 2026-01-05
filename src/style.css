@@ -1462,9 +1462,7 @@
 
 .mainpage--mp .header--navbar .mainlogo {
   width: 12%;
-  border-radius: 50%;
   margin-left: 5px;
-  border: 2px solid red;
 }
 
 .mainpage--mp .header--navbar .logo--heading {

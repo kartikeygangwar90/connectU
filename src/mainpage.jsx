@@ -167,6 +167,23 @@ const Mainpage = () => {
     setImage(URL.createObjectURL(file));
   };
 
+  const [techInput, setTechInput] = React.useState("");
+  const [softInput, setSoftInput] = React.useState("");
+  const [projectInterest, setProjectInterest] = React.useState("");
+  const [generalInterest, setGeneralInterest] = React.useState("");
+
+  const toggleEditSkills = (key, value) => {
+    if(!value.trim()) return;
+    setEditProfileData(prev => {
+      const arr = prev[key] || [];
+
+      return {
+        ...prev,
+        [key] : arr.includes(value) ? arr.filter(v => v!== value ) : [...arr, value],
+      }
+    })
+  }
+
   return (
     <div className="mainpage--mp">
       <div className="header--navbar">
@@ -658,6 +675,10 @@ const Mainpage = () => {
                 ))
               }
               </div>
+              <p>Availability to join teams</p>
+              <div>
+                <span className="interest--box">{userProfile.availability}</span>
+              </div>
             </div>
           </div>
           </div>
@@ -761,10 +782,163 @@ const Mainpage = () => {
                 }
                 />
               </div>
-              <div className="select-avail">
-                <p>Available for joining teams ? </p>
-                <input type="radio" name="availability"  />
+              <div className="select--skills">
+                <p>Technical Skills : </p>
+                <input 
+                type="text"
+                placeholder="Add Technical Skills"
+                value={techInput}
+                onChange={(e) => setTechInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if(e.key === "Enter") {
+                    e.preventDefault();
+                    toggleEditSkills("technicalSkills", techInput);
+                    setTechInput("");
+                  }
+                }}
+                />
+
+                <div className="edit--skill--arena">
+                  {
+                    editProfileData.technicalSkills?.map((skill) => (
+                      <span
+                      key={skill}
+                      className="edit--skill--box"
+                      onClick={() => toggleEditSkills("technicalSkills", skill)}
+                      >
+                        {skill} ✕
+                      </span>
+                    ))
+                  }
+                </div> 
               </div>
+
+              <div className="select--softSkills">
+                <p>Soft Skills :</p>
+                <input 
+                type="text"
+                placeholder="Enter Soft Skills"
+                value={softInput}
+                onChange={(e) => setSoftInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if(e.key === "Enter") {
+                    e.preventDefault();
+                    toggleEditSkills("softSkills", softInput);
+                    setSoftInput("");
+                  }
+                }}
+                />
+                <div className="edit--skill--arena">
+                  {
+                    editProfileData.softSkills?.map((skill) => (
+                      <span
+                      key={skill}
+                      className="edit--skill--box"
+                      onClick={() => toggleEditSkills("softSkills", skill)}
+                      >
+                        {skill} ✕
+                      </span>
+                    ))
+                  }
+                </div>
+              </div>
+
+              <div className="select--projectInterest">
+                <p>Project type interests : </p>
+                <input
+                  type="text"
+                  placeholder="Enter Project type Interest"
+                  value={projectInterest}
+                  onChange={(e) => setProjectInterest(e.target.value)}
+                  onKeyDown={(e) => {
+                  if(e.key === "Enter") {
+                    e.preventDefault();
+                    toggleEditSkills("interests", projectInterest);
+                    setProjectInterest("");
+                  }
+                }}
+                />
+
+                <div className="edit--interest--arena">
+                  {
+                    editProfileData.interests?.map((interest) => (
+                      <span
+                      key={interest}
+                      className="edit--project--box"
+                      onClick={() => toggleEditSkills("interests", interest)}
+                      >
+                        {interest} ✕
+                      </span>
+                    ))
+                  }
+                </div>
+              </div>
+
+              <div className="select--generalInterest">
+                <p>General Interest :</p>
+                <input
+                  type="text"
+                  placeholder="Enter General Interest"
+                  value={generalInterest}
+                  onChange={(e) => setGeneralInterest(e.target.value)}
+                  onKeyDown={(e) => {
+                  if(e.key === "Enter") {
+                    e.preventDefault();
+                    toggleEditSkills("generalInterest", generalInterest);
+                    setGeneralInterest("");
+                  }
+                }}
+                />
+
+                <div className="edit--interest--arena">
+                  {
+                    editProfileData.generalInterest?.map((interest) => (
+                      <span
+                      key={interest}
+                      className="edit--general--interest"
+                      onClick={() => toggleEditSkills("generalInterest", interest)}
+                      >
+                        {interest} ✕
+                      </span>
+                    ))
+                  }
+                </div>
+              </div>
+
+              <div className="select--avail">
+                <p>Available for joining teams ? </p>
+                <label>
+                  <input
+                   type="radio"
+                    name="availability"
+                    value="Yes"
+                    checked={editProfileData.availability === "Yes"}
+                    onChange={(e) => 
+                      setEditProfileData({
+                        ...editProfileData,
+                        availability: e.target.value,
+                      })
+                    }
+                     />
+                     <span>Yes</span>
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="availability"
+                    value="No"
+                    checked={editProfileData.availability === "No"}
+                    onChange={(e) => 
+                      setEditProfileData({
+                        ...editProfileData,
+                        availability: e.target.value,
+                      })
+                    }
+                     />
+                     <span>No</span>
+                </label>
+              </div>
+
               <button
               className="save--profile"
               onClick={async () => {
@@ -821,5 +995,3 @@ const Mainpage = () => {
 };
 
 export default Mainpage;
-
-2

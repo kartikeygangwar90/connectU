@@ -1,0 +1,76 @@
+/* ============================================
+   ConnectU - Base Styles (Reset & Globals)
+   ============================================ */
+
+/* Global Reset & Base Styles */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-main);
+    color: var(--text-main);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Hide browser autofill suggestions */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #f3f4f6 inset !important;
+    -webkit-text-fill-color: #111827 !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Hide password manager icons */
+input::-webkit-credentials-auto-fill-button,
+input::-webkit-contacts-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+    margin: 0;
+}
+
+/* Mobile Visibility Utilities */
+.show-on-mobile {
+    display: none;
+}
+
+.hide-on-mobile {
+    display: inline;
+}
+
+@media (max-width: 768px) {
+    .show-on-mobile {
+        display: inline;
+    }
+
+    .hide-on-mobile {
+        display: none;
+    }
+}
+
+.show-on-mobile-flex {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .show-on-mobile-flex {
+        display: flex;
+    }
+}

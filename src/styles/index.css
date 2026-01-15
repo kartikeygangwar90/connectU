@@ -1,0 +1,28 @@
+/* ============================================
+   ConnectU - CSS Module Index
+   
+   This file imports all modular CSS files.
+   Import this single file in your app instead 
+   of importing each file individually.
+   ============================================ */
+
+/* 1. Design Tokens / CSS Variables */
+@import './variables.css';
+
+/* 2. Animation Keyframes */
+@import './animations.css';
+
+/* 3. Base Styles & Reset */
+@import './base.css';
+
+/* Component styles remain in style.css for now.
+   Future refactoring can move each component's
+   styles to its own module:
+   
+   @import './components/navbar.css';
+   @import './components/cards.css';
+   @import './components/modals.css';
+   @import './pages/auth.css';
+   @import './pages/dashboard.css';
+   @import './pages/profile.css';
+*/

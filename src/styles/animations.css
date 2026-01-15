@@ -1,0 +1,129 @@
+/* ============================================
+   ConnectU - Animation Keyframes
+   ============================================ */
+
+/* Liquid Glass Animations */
+@keyframes liquidShimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes glassFloat {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes pulseGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+    }
+}
+
+@keyframes borderFlow {
+    0% {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    50% {
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    100% {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    33% {
+        transform: translate(2%, 2%) rotate(1deg);
+    }
+
+    66% {
+        transform: translate(-1%, 1%) rotate(-1deg);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 0 12px rgba(59, 130, 246, 0.1);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Liquid Glass Utility Classes */
+.glass-hover {
+    transition: all var(--transition-smooth);
+}
+
+.glass-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}

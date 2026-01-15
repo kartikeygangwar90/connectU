@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect } from "react";
 import React from "react";
 import {
@@ -10,14 +11,12 @@ import { auth } from "./firebase";
 
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { dataBase } from "./firebase";
-import { replace, useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({children}) => {
+export const AuthProvider = ({ children }) => {
     const [user, setUser] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
-    const navigate = useNavigate();
 
     const signup = (email, password) => {
         return createUserWithEmailAndPassword(auth, email, password);
@@ -31,29 +30,29 @@ export const AuthProvider = ({children}) => {
         return signOut(auth);
     }
 
-    useEffect( () => {
+    useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            try{
-            setUser(currentUser);
+            try {
+                setUser(currentUser);
 
-            if(currentUser) {
-                const userRef = doc(dataBase, "users", currentUser.uid);
-                const snap = await getDoc(userRef);
+                if (currentUser) {
+                    const userRef = doc(dataBase, "users", currentUser.uid);
+                    const snap = await getDoc(userRef);
 
-                // creating doc for first time ----->
-                if(!snap.exists()) {
-                    await setDoc(userRef, {
-                        email: currentUser.email,
-                        profileCompleted: false,
-                        createdAt: serverTimestamp(),
-                    });
+                    // creating doc for first time ----->
+                    if (!snap.exists()) {
+                        await setDoc(userRef, {
+                            email: currentUser.email,
+                            profileCompleted: false,
+                            createdAt: serverTimestamp(),
+                        });
+                    }
                 }
+            } catch (error) {
+                console.error("Auth Error", error);
+            } finally {
+                setLoading(false);
             }
-        }catch(error){
-            console.error("Auth Error", error);
-        }finally{
-            setLoading(false);
-        }
         });
 
         return unsubscribe;
@@ -68,7 +67,7 @@ export const AuthProvider = ({children}) => {
     };
 
     return (
-        <AuthContext.Provider value = { value } >
+        <AuthContext.Provider value={value} >
             {!loading && children}
         </AuthContext.Provider>
     );

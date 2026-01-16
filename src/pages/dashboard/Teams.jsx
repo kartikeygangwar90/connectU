@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useOutletContext, useSearchParams } from "react-router-dom";
+import { useOutletContext, useSearchParams, useNavigate } from "react-router-dom";
 import { TeamContext } from "../../context/TeamContext";
 import { addDoc, collection, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { dataBase, auth } from "../../firebase";
@@ -21,9 +21,23 @@ const ESPORTS_ACTIVITIES = ["Valorant", "BGMI", "FIFA", "COD", "Free Fire", "CS2
 const CULTURAL_ACTIVITIES = ["Dance", "Music", "Singing", "Drama", "Art", "Photography", "Content Creation", "Poetry", "Writing", "Painting"];
 
 const Teams = () => {
-    const { teams, events, userProfile, allUsers } = useOutletContext();
+    const { teams, events, userProfile, allUsers, profileCompleted } = useOutletContext();
     const { addTeam } = useContext(TeamContext);
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
+
+    // Helper to check profile completion before restricted actions
+    const requireProfile = () => {
+        if (!profileCompleted) {
+            toast.error("Please complete your profile to use this feature", {
+                duration: 4000,
+                icon: "📝",
+            });
+            navigate("/profile");
+            return false;
+        }
+        return true;
+    };
 
     // Filter State
     const eventFilter = searchParams.get("event");
@@ -99,6 +113,9 @@ const Teams = () => {
     const handleCreateTeamSubmit = async (e) => {
         e.preventDefault();
 
+        // Require profile completion
+        if (!requireProfile()) return;
+
         if (isNewEvent) {
             if (!eventCategory) { toast.error("Please select a category"); return; }
             if (!eventDeadline) { toast.error("Please set an event deadline"); return; }
@@ -151,6 +168,9 @@ const Teams = () => {
     const handleJoinRequest = async (e) => {
         e.preventDefault();
         if (!selectedTeam || !auth.currentUser || !userProfile) return;
+
+        // Require profile completion
+        if (!requireProfile()) return;
 
         setSendingRequest(true);
         try {

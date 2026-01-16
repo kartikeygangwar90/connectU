@@ -1,12 +1,26 @@
 import React, { useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { addDoc, collection, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { dataBase, auth } from "../../firebase";
 import { sendJoinRequestEmail } from "../../utils/emailService";
 import toast from "react-hot-toast";
 
 const ForYou = () => {
-    const { teams, userProfile, allUsers } = useOutletContext();
+    const { teams, userProfile, allUsers, profileCompleted } = useOutletContext();
+    const navigate = useNavigate();
+
+    // Helper to check profile completion before restricted actions
+    const requireProfile = () => {
+        if (!profileCompleted) {
+            toast.error("Please complete your profile to use this feature", {
+                duration: 4000,
+                icon: "📝",
+            });
+            navigate("/profile");
+            return false;
+        }
+        return true;
+    };
 
     const [selectedTeam, setSelectedTeam] = useState(null);
     const [joinMessage, setJoinMessage] = useState("");
@@ -90,6 +104,10 @@ const ForYou = () => {
 
     const handleJoinRequest = async () => {
         if (!selectedTeam) return;
+
+        // Require profile completion
+        if (!requireProfile()) return;
+
         setSendingRequest(true);
         try {
             const notificationRef = await addDoc(collection(dataBase, "notifications"), {

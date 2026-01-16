@@ -1,16 +1,30 @@
 import React, { useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { dataBase, auth } from "../../firebase";
 import { sendInviteEmail } from "../../utils/emailService";
 import toast from "react-hot-toast";
 
 const DiscoverTalent = () => {
-    const { allUsers, teams, userProfile, searchQuery, searchBySkill } = useOutletContext();
+    const { allUsers, teams, userProfile, searchQuery, searchBySkill, profileCompleted } = useOutletContext();
+    const navigate = useNavigate();
     const [selectedUser, setSelectedUser] = useState(null);
     const [inviteTeamId, setInviteTeamId] = useState("");
     const [inviteMessage, setInviteMessage] = useState("");
     const [isInviting, setIsInviting] = useState(false);
+
+    // Helper to check profile completion before restricted actions
+    const requireProfile = () => {
+        if (!profileCompleted) {
+            toast.error("Please complete your profile to use this feature", {
+                duration: 4000,
+                icon: "📝",
+            });
+            navigate("/profile");
+            return false;
+        }
+        return true;
+    };
 
     // Filter teams to only those created by the current user
     const myTeams = teams.filter(t => t.createdBy === auth.currentUser?.uid);
@@ -39,6 +53,9 @@ const DiscoverTalent = () => {
 
     const handleInvite = async () => {
         if (!selectedUser || !inviteTeamId) return;
+
+        // Require profile completion
+        if (!requireProfile()) return;
 
         setIsInviting(true);
         try {

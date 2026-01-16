@@ -1,39 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import { doc, getDoc } from "firebase/firestore";
-import { dataBase } from "./firebase";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const [checking, setChecking] = useState(true);
-  const [profileCompleted, setProfileCompleted] = useState(false);
-
-  useEffect(() => {
-    const checkProfile = async () => {
-      if (!user) {
-        setChecking(false);
-        return;
-      }
-
-      try {
-        const userRef = doc(dataBase, "users", user.uid);
-        const snap = await getDoc(userRef);
-        setProfileCompleted(!!snap.data()?.profileCompleted);
-      } catch (error) {
-        console.error("Error checking profile:", error);
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    if (!loading) {
-      checkProfile();
-    }
-  }, [user, loading]);
 
   // Show loading state
-  if (loading || checking) {
+  if (loading) {
     return (
       <div
         style={{
@@ -73,13 +46,10 @@ const PrivateRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Redirect to profile setup if profile not completed
-  if (!profileCompleted) {
-    return <Navigate to="/profile" replace />;
-  }
-
-  // Render protected content
+  // Allow browsing without profile completion
+  // Individual features will check profile completion and redirect if needed
   return children;
 };
 
 export default PrivateRoute;
+

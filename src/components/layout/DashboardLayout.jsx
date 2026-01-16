@@ -249,7 +249,7 @@ const DashboardLayout = () => {
             )}
 
             {/* Child Pages */}
-            <Outlet context={{ userProfile, allUsers, teams, events, searchQuery, searchBySkill }} />
+            <Outlet context={{ userProfile, allUsers, teams, events, searchQuery, searchBySkill, profileCompleted: !!userProfile?.profileCompleted }} />
 
             {/* Footer */}
             <Footer />

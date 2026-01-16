@@ -1,13 +1,15 @@
 import emailjs from "@emailjs/browser";
 
-// EmailJS credentials from environment variables
+// Initialize EmailJS with your public key
+// You'll need to set these in your .env file
 const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-const TEMPLATE_ID_JOIN = import.meta.env.VITE_EMAILJS_TEMPLATE_JOIN;
-const TEMPLATE_ID_INVITE = import.meta.env.VITE_EMAILJS_TEMPLATE_INVITE;
+const JOIN_REQUEST_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_JOIN_REQUEST_TEMPLATE_ID;
+const INVITE_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_INVITE_TEMPLATE_ID;
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
 /**
  * Sends an email to the Team Leader when a user requests to join.
+ * Uses EmailJS for client-side email sending
  * 
  * @param {string} leaderEmail - The email of the team leader
  * @param {string} leaderName - Name of the leader
@@ -15,33 +17,46 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
  * @param {object} team - { teamName, eventName }
  */
 export const sendJoinRequestEmail = async (leaderEmail, leaderName, candidate, team) => {
-    if (!leaderEmail || !SERVICE_ID || !TEMPLATE_ID_JOIN || !PUBLIC_KEY) {
-        console.warn("EmailJS not configured or missing email. Check VITE_EMAILJS_* environment variables.");
+    if (!leaderEmail) {
+        console.warn("Missing leader email. Cannot send join request notification.");
         return;
     }
 
-    const templateParams = {
-        to_email: leaderEmail,
-        to_name: leaderName,
-        candidate_name: candidate.fullName,
-        candidate_email: candidate.email,
-        candidate_branch: candidate.branch,
-        candidate_skills: candidate.skills,
-        team_name: team.teamName,
-        event_name: team.eventName,
-        message_link: candidate.notificationLink || "http://localhost:5173/app/profile"
-    };
+    if (!SERVICE_ID || !JOIN_REQUEST_TEMPLATE_ID || !PUBLIC_KEY) {
+        console.warn("EmailJS not configured. Skipping email notification.");
+        return;
+    }
 
     try {
-        await emailjs.send(SERVICE_ID, TEMPLATE_ID_JOIN, templateParams, PUBLIC_KEY);
-        console.log("Join Request Email sent successfully!");
+        const templateParams = {
+            to_email: leaderEmail,
+            to_name: leaderName,
+            candidate_name: candidate.fullName,
+            candidate_email: candidate.email,
+            candidate_branch: candidate.branch || "Not specified",
+            candidate_skills: Array.isArray(candidate.skills) ? candidate.skills.join(", ") : candidate.skills,
+            team_name: team.teamName,
+            event_name: team.eventName
+        };
+
+        const result = await emailjs.send(
+            SERVICE_ID,
+            JOIN_REQUEST_TEMPLATE_ID,
+            templateParams,
+            PUBLIC_KEY
+        );
+
+        console.log("Join Request Email sent successfully!", result);
+        return result;
     } catch (error) {
         console.error("Failed to send join email:", error);
+        // Don't throw - email failures shouldn't block the main action
     }
 };
 
 /**
  * Sends an email to a User when a Team Leader invites them.
+ * Uses EmailJS for client-side email sending
  * 
  * @param {string} candidateEmail - Target user email
  * @param {string} candidateName - Target user name
@@ -49,26 +64,38 @@ export const sendJoinRequestEmail = async (leaderEmail, leaderName, candidate, t
  * @param {object} team - { teamName, eventName, teamDesc }
  */
 export const sendInviteEmail = async (candidateEmail, candidateName, leader, team) => {
-    if (!candidateEmail || !SERVICE_ID || !TEMPLATE_ID_INVITE || !PUBLIC_KEY) {
-        console.warn("EmailJS not configured or missing email. Check VITE_EMAILJS_* environment variables.");
+    if (!candidateEmail) {
+        console.warn("Missing candidate email. Cannot send invite notification.");
         return;
     }
 
-    const templateParams = {
-        to_email: candidateEmail,
-        to_name: candidateName,
-        leader_name: leader.fullName,
-        leader_email: leader.email,
-        team_name: team.teamName,
-        event_name: team.eventName,
-        team_desc: team.teamDesc,
-        message_link: leader.notificationLink || "http://localhost:5173/app/discover"
-    };
+    if (!SERVICE_ID || !INVITE_TEMPLATE_ID || !PUBLIC_KEY) {
+        console.warn("EmailJS not configured. Skipping email notification.");
+        return;
+    }
 
     try {
-        await emailjs.send(SERVICE_ID, TEMPLATE_ID_INVITE, templateParams, PUBLIC_KEY);
-        console.log("Invite Email sent successfully!");
+        const templateParams = {
+            to_email: candidateEmail,
+            to_name: candidateName,
+            leader_name: leader.fullName,
+            leader_email: leader.email,
+            team_name: team.teamName,
+            event_name: team.eventName,
+            team_description: team.teamDesc || "No description provided"
+        };
+
+        const result = await emailjs.send(
+            SERVICE_ID,
+            INVITE_TEMPLATE_ID,
+            templateParams,
+            PUBLIC_KEY
+        );
+
+        console.log("Invite Email sent successfully!", result);
+        return result;
     } catch (error) {
         console.error("Failed to send invite email:", error);
+        // Don't throw - email failures shouldn't block the main action
     }
 };

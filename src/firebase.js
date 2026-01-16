@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions } from "firebase/functions";
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -18,3 +19,5 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 // export fireStore
 export const dataBase = getFirestore(app);
+// export functions
+export const functions = getFunctions(app);

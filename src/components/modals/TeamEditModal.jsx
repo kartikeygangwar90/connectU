@@ -131,11 +131,34 @@ const TeamEditModal = ({
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                    <button onClick={closeEditModal} style={{ padding: '0.75rem 1.5rem', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', borderRadius: '0.5rem', cursor: 'pointer', color: 'white' }}>Cancel</button>
-                    <button onClick={handleSaveTeam} disabled={saving} style={{ padding: '0.75rem 1.5rem', background: 'white', color: 'black', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                        {saving ? "Saving..." : "Save Changes"}
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between', marginTop: '2rem' }}>
+                    <button
+                        onClick={() => {
+                            const link = `${window.location.origin}/app/teams?directJoin=${editingTeam.id}`;
+                            navigator.clipboard.writeText(link);
+                            // Simple alert for now, assuming toast is handled in parent or we can import toast if needed
+                            alert("Join link copied to clipboard! Share it with anyone.");
+                        }}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            background: '#27272a',
+                            color: 'white',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '0.5rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                        }}
+                    >
+                        🔗 Copy Join Link
                     </button>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button onClick={closeEditModal} style={{ padding: '0.75rem 1.5rem', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', borderRadius: '0.5rem', cursor: 'pointer', color: 'white' }}>Cancel</button>
+                        <button onClick={handleSaveTeam} disabled={saving} style={{ padding: '0.75rem 1.5rem', background: 'white', color: 'black', borderRadius: '0.5rem', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                            {saving ? "Saving..." : "Save Changes"}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { dataBase, auth } from "../../firebase";
 import { sendInviteEmail } from "../../utils/emailService";
 import toast from "react-hot-toast";
+import CompleteProfileModal from "../../components/modals/CompleteProfileModal";
 
 const DiscoverTalent = () => {
     const { allUsers, teams, userProfile, searchQuery, searchBySkill, profileCompleted } = useOutletContext();
@@ -12,15 +13,12 @@ const DiscoverTalent = () => {
     const [inviteTeamId, setInviteTeamId] = useState("");
     const [inviteMessage, setInviteMessage] = useState("");
     const [isInviting, setIsInviting] = useState(false);
+    const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
 
     // Helper to check profile completion before restricted actions
     const requireProfile = () => {
         if (!profileCompleted) {
-            toast.error("Please complete your profile to use this feature", {
-                duration: 4000,
-                icon: "📝",
-            });
-            navigate("/profile");
+            setShowCompleteProfileModal(true);
             return false;
         }
         return true;
@@ -190,9 +188,13 @@ const DiscoverTalent = () => {
                                 )}
                                 <button
                                     onClick={() => {
-                                        setSelectedUser(user);
-                                        // Auto-select first team if available
-                                        if (myTeams.length > 0) setInviteTeamId(myTeams[0].id);
+                                        if (!profileCompleted) {
+                                            setShowCompleteProfileModal(true);
+                                        } else {
+                                            setSelectedUser(user);
+                                            // Auto-select first team if available
+                                            if (myTeams.length > 0) setInviteTeamId(myTeams[0].id);
+                                        }
                                     }}
                                     style={{
                                         flex: 2, padding: '0.5rem', background: 'white', color: 'black', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: 600
@@ -257,6 +259,12 @@ const DiscoverTalent = () => {
                     </div>
                 </div>
             )}
+
+            {/* Complete Profile Modal */}
+            <CompleteProfileModal 
+                isOpen={showCompleteProfileModal}
+                onClose={() => setShowCompleteProfileModal(false)}
+            />
         </div>
     );
 };

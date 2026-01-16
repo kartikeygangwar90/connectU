@@ -229,7 +229,7 @@ function ProfileSetup() {
         email: auth.currentUser.email, // Required by Firestore rules
         profileCompleted: true,
       }, { merge: true });
-      navigate("/home", { replace: true });
+      navigate("/app/events", { replace: true });
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("Failed to save profile. Please try again.");

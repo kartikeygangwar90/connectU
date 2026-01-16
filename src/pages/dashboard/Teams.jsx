@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useOutletContext, useSearchParams, useNavigate } from "react-router-dom";
 import { TeamContext } from "../../context/TeamContext";
-import { addDoc, collection, serverTimestamp, doc, getDoc } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
 import { dataBase, auth } from "../../firebase";
 import { sendJoinRequestEmail } from "../../utils/emailService";
 import toast from "react-hot-toast";
+import CompleteProfileModal from "../../components/modals/CompleteProfileModal";
 
 const CATEGORIES = [
     { id: "research", name: "Research" },
@@ -29,11 +30,7 @@ const Teams = () => {
     // Helper to check profile completion before restricted actions
     const requireProfile = () => {
         if (!profileCompleted) {
-            toast.error("Please complete your profile to use this feature", {
-                duration: 4000,
-                icon: "📝",
-            });
-            navigate("/profile");
+            setShowCompleteProfileModal(true);
             return false;
         }
         return true;
@@ -74,6 +71,11 @@ const Teams = () => {
     const [joinMessage, setJoinMessage] = useState("");
     const [sendingRequest, setSendingRequest] = useState(false);
     const [openDetailsModal, setOpenDetailsModal] = useState(false);
+    const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
+
+    // Creation Success Modal State
+    const [createdTeamId, setCreatedTeamId] = useState(null);
+    const [showCreationSuccessModal, setShowCreationSuccessModal] = useState(false);
 
     // Initialize Event Name if passed via URL
     useEffect(() => {
@@ -82,6 +84,96 @@ const Teams = () => {
             // For now, the filter applies to "Browse Teams".
         }
     }, [eventFilter]);
+
+    // Handle Direct Join Link
+    const directJoinId = searchParams.get("directJoin");
+    const [directJoinTeam, setDirectJoinTeam] = useState(null);
+    const [showDirectJoinModal, setShowDirectJoinModal] = useState(false);
+    const [joiningDirectly, setJoiningDirectly] = useState(false);
+
+    useEffect(() => {
+        const fetchDirectJoinTeam = async () => {
+            if (directJoinId && !showDirectJoinModal) {
+                try {
+                    // Check if team is already in context list
+                    let team = teams.find(t => t.id === directJoinId);
+
+                    if (!team) {
+                        // If not in context (e.g., fresh load), fetch from Firestore
+                        const docRef = doc(dataBase, "teams", directJoinId);
+                        const docSnap = await getDoc(docRef);
+                        if (docSnap.exists()) {
+                            team = { id: docSnap.id, ...docSnap.data() };
+                        }
+                    }
+
+                    if (team) {
+                        setDirectJoinTeam(team);
+                        setShowDirectJoinModal(true);
+                    } else {
+                        toast.error("Team not found or link is invalid.");
+                    }
+                } catch (err) {
+                    console.error("Error fetching team for direct join:", err);
+                    toast.error("Failed to load team details.");
+                }
+            }
+        };
+
+        if (directJoinId) {
+            fetchDirectJoinTeam();
+        }
+    }, [directJoinId, teams]);
+
+    const handleDirectJoin = async () => {
+        if (!directJoinTeam || !auth.currentUser) return;
+
+        // Require profile
+        if (!requireProfile()) {
+            setShowDirectJoinModal(false);
+            return;
+        }
+
+        if (directJoinTeam.members?.includes(auth.currentUser.uid)) {
+            toast.success("You are already a member of this team!");
+            setShowDirectJoinModal(false);
+            setSearchParams(params => {
+                params.delete("directJoin");
+                return params;
+            });
+            return;
+        }
+
+        if ((directJoinTeam.members?.length || 1) >= parseInt(directJoinTeam.teamSize)) {
+            toast.error("This team is already full.");
+            return;
+        }
+
+        setJoiningDirectly(true);
+        try {
+            const teamRef = doc(dataBase, "teams", directJoinTeam.id);
+            // Add user to members array
+            await updateDoc(teamRef, {
+                members: [...(directJoinTeam.members || []), auth.currentUser.uid]
+            });
+
+            toast.success(`Successfully joined ${directJoinTeam.teamName}! 🎉`);
+            setShowDirectJoinModal(false);
+
+            // Clear query param
+            setSearchParams(params => {
+                params.delete("directJoin");
+                return params;
+            });
+
+            // Context should auto-update via snapshot listener defined in TeamContext
+        } catch (error) {
+            console.error("Direct join failed:", error);
+            toast.error("Failed to join team. Please try again.");
+        } finally {
+            setJoiningDirectly(false);
+        }
+    };
 
     // Helpers
     const toggleSkillRequired = (skill) => {
@@ -153,12 +245,16 @@ const Teams = () => {
         const res = await addTeam(teamData, eventData);
 
         if (res.success) {
-            toast.success("Team created successfully! 🎉");
+            // toast.success("Team created successfully! 🎉"); // Removed simple toast in favor of modal
             setTeamChoice(false);
             setNewTeamName(""); setNewTeamDesc(""); setNewTeamSize("");
             setNewTeamSkills([]); setRequiredActivities([]); setNewTeamLeader(""); setEventInputName("");
             setEventCategory(""); setEventDeadline(""); setEventUrl("");
             setIsNewEvent(true);
+
+            // Show Success Modal with Link
+            setCreatedTeamId(res.teamId);
+            setShowCreationSuccessModal(true);
         } else {
             console.error("Creation failed:", res.error);
             toast.error(`Failed to create team: ${res.error?.message || "Unknown error"}`);
@@ -292,7 +388,15 @@ const Teams = () => {
                             <button onClick={() => setOpenDetailsModal(false)} style={{ padding: '0.75rem 1.5rem', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', borderRadius: '0.5rem', cursor: 'pointer', color: 'white' }}>Close</button>
                             {/* Hide join button if team is full or user already a member */}
                             {!selectedTeam.members?.includes(auth.currentUser?.uid) && (selectedTeam.members?.length || 1) < parseInt(selectedTeam.teamSize) && (
-                                <button onClick={() => { setOpenDetailsModal(false); setOpenJoinModel(true); }} style={{ padding: '0.75rem 1.5rem', background: 'black', color: 'white', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }}>
+                                <button onClick={() => {
+                                    if (!profileCompleted) {
+                                        setOpenDetailsModal(false);
+                                        setShowCompleteProfileModal(true);
+                                    } else {
+                                        setOpenDetailsModal(false);
+                                        setOpenJoinModel(true);
+                                    }
+                                }} style={{ padding: '0.75rem 1.5rem', background: 'black', color: 'white', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }}>
                                     Request to Join
                                 </button>
                             )}
@@ -326,7 +430,13 @@ const Teams = () => {
 
             <div className="choosing--team--type">
                 <div className="team--browse"><button className={`team--option ${!teamChoice ? "team--choice" : ""}`} onClick={() => setTeamChoice(false)}>Browse Teams</button></div>
-                <div className="team--formation"><button className={`team--create ${teamChoice ? "team--choice" : ""}`} onClick={() => setTeamChoice(true)}>Create Team</button></div>
+                <div className="team--formation"><button className={`team--create ${teamChoice ? "team--choice" : ""}`} onClick={() => {
+                    if (!profileCompleted) {
+                        setShowCompleteProfileModal(true);
+                    } else {
+                        setTeamChoice(true);
+                    }
+                }}>Create Team</button></div>
             </div>
 
             <div className="filtered--event">
@@ -717,7 +827,15 @@ const Teams = () => {
                                         ) : isFull ? (
                                             <button className="browse--Request" disabled style={{ background: '#27272a', color: '#71717a', cursor: 'not-allowed' }}>Team Full</button>
                                         ) : (
-                                            <button className="browse--Request" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setOpenJoinModel(true); }}>Request to Join</button>
+                                            <button className="browse--Request" onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!profileCompleted) {
+                                                    setShowCompleteProfileModal(true);
+                                                } else {
+                                                    setSelectedTeam(team);
+                                                    setOpenJoinModel(true);
+                                                }
+                                            }}>Request to Join</button>
                                         )}
                                     </div>
                                 );
@@ -727,6 +845,188 @@ const Teams = () => {
                 </div>
             )
             }
+
+            {/* Complete Profile Modal */}
+            <CompleteProfileModal
+                isOpen={showCompleteProfileModal}
+                onClose={() => setShowCompleteProfileModal(false)}
+            />
+            {/* Complete Profile Modal */}
+            <CompleteProfileModal
+                isOpen={showCompleteProfileModal}
+                onClose={() => setShowCompleteProfileModal(false)}
+            />
+
+            {/* Direct Join Modal */}
+            {showDirectJoinModal && directJoinTeam && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100,
+                    backdropFilter: 'blur(5px)'
+                }}>
+                    <div className="modal-content" style={{
+                        background: '#0a0a0a',
+                        padding: '2.5rem',
+                        borderRadius: '1.5rem',
+                        width: '90%',
+                        maxWidth: '550px',
+                        maxHeight: '90vh',
+                        overflowY: 'auto',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        textAlign: 'center',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                    }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>You've been invited!</h2>
+                        <p style={{ color: '#a1a1aa', fontSize: '1.1rem', marginBottom: '2rem' }}>
+                            You are about to join <strong style={{ color: 'white' }}>{directJoinTeam.teamName}</strong> for <strong style={{ color: '#60a5fa' }}>{directJoinTeam.eventName}</strong>.
+                        </p>
+
+                        <div style={{
+                            background: '#18181b',
+                            padding: '1.5rem',
+                            borderRadius: '1rem',
+                            marginBottom: '2rem',
+                            textAlign: 'left'
+                        }}>
+                            <p style={{ color: '#a1a1aa', fontSize: '0.9rem', marginBottom: '0.5rem' }}>📝 Description</p>
+                            <p style={{ color: 'white', marginBottom: '1rem', lineHeight: '1.5' }}>{directJoinTeam.teamDesc}</p>
+
+                            <p style={{ color: '#a1a1aa', fontSize: '0.9rem', marginBottom: '0.5rem' }}>👥 Current Members</p>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {/* Just showing count for simplicity, names avail via context if needed */}
+                                <span style={{ color: 'white', fontSize: '0.95rem' }}>
+                                    {directJoinTeam.members?.length || 1} / {directJoinTeam.teamSize} members
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <button
+                                onClick={handleDirectJoin}
+                                disabled={joiningDirectly}
+                                style={{
+                                    padding: '1rem',
+                                    background: 'white',
+                                    color: 'black',
+                                    borderRadius: '0.75rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1rem',
+                                    transition: 'transform 0.1s'
+                                }}
+                            >
+                                {joiningDirectly ? "Joining..." : "Join Team Now"}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowDirectJoinModal(false);
+                                    setSearchParams(params => {
+                                        params.delete("directJoin");
+                                        return params;
+                                    });
+                                }}
+                                style={{
+                                    padding: '1rem',
+                                    background: 'transparent',
+                                    color: '#a1a1aa',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem'
+                                }}
+                            >
+                                No, thanks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Creation Success Modal */}
+            {showCreationSuccessModal && createdTeamId && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100,
+                    backdropFilter: 'blur(5px)'
+                }}>
+                    <div className="modal-content" style={{
+                        background: '#0a0a0a',
+                        padding: '2.5rem',
+                        borderRadius: '1.5rem',
+                        width: '90%',
+                        maxWidth: '500px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        textAlign: 'center',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                    }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'white', marginBottom: '0.5rem' }}>Team Created!</h2>
+                        <p style={{ color: '#a1a1aa', fontSize: '1.1rem', marginBottom: '2rem' }}>
+                            Your team is ready. Share this link to let others join instantly directly:
+                        </p>
+
+                        <div style={{
+                            background: '#18181b',
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            marginBottom: '2rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <input
+                                type="text"
+                                readOnly
+                                value={`${window.location.origin}/app/teams?directJoin=${createdTeamId}`}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#a1a1aa',
+                                    flex: 1,
+                                    fontSize: '0.9rem',
+                                    outline: 'none',
+                                    textOverflow: 'ellipsis'
+                                }}
+                            />
+                            <button
+                                onClick={() => {
+                                    const link = `${window.location.origin}/app/teams?directJoin=${createdTeamId}`;
+                                    navigator.clipboard.writeText(link);
+                                    toast.success("Link copied!");
+                                }}
+                                style={{
+                                    background: 'white',
+                                    color: 'black',
+                                    border: 'none',
+                                    borderRadius: '0.5rem',
+                                    padding: '0.5rem 1rem',
+                                    fontWeight: '600',
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Copy
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setShowCreationSuccessModal(false)}
+                            style={{
+                                padding: '0.8rem 2rem',
+                                background: '#27272a',
+                                color: 'white',
+                                borderRadius: '0.75rem',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                cursor: 'pointer',
+                                fontSize: '1rem'
+                            }}
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

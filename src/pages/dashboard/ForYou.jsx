@@ -4,6 +4,7 @@ import { addDoc, collection, serverTimestamp, doc, getDoc } from "firebase/fires
 import { dataBase, auth } from "../../firebase";
 import { sendJoinRequestEmail } from "../../utils/emailService";
 import toast from "react-hot-toast";
+import CompleteProfileModal from "../../components/modals/CompleteProfileModal";
 
 const ForYou = () => {
     const { teams, userProfile, allUsers, profileCompleted } = useOutletContext();
@@ -12,11 +13,7 @@ const ForYou = () => {
     // Helper to check profile completion before restricted actions
     const requireProfile = () => {
         if (!profileCompleted) {
-            toast.error("Please complete your profile to use this feature", {
-                duration: 4000,
-                icon: "📝",
-            });
-            navigate("/profile");
+            setShowCompleteProfileModal(true);
             return false;
         }
         return true;
@@ -27,6 +24,7 @@ const ForYou = () => {
     const [openJoinModel, setOpenJoinModel] = useState(false);
     const [sendingRequest, setSendingRequest] = useState(false);
     const [openDetailsModal, setOpenDetailsModal] = useState(false);
+    const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
 
     // Helpers
     const normalizeSkill = (skill) => skill.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
@@ -228,7 +226,15 @@ const ForYou = () => {
                             <button onClick={() => setOpenDetailsModal(false)} style={{ padding: '0.75rem 1.5rem', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', borderRadius: '0.5rem', cursor: 'pointer', color: 'white' }}>Close</button>
                             {/* Hide join button if team is full or user already a member */}
                             {!selectedTeam.members?.includes(auth.currentUser?.uid) && (selectedTeam.members?.length || 1) < parseInt(selectedTeam.teamSize) && (
-                                <button onClick={() => { setOpenDetailsModal(false); setOpenJoinModel(true); }} style={{ padding: '0.75rem 1.5rem', background: 'black', color: 'white', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }}>
+                                <button onClick={() => { 
+                                    if (!profileCompleted) {
+                                        setOpenDetailsModal(false);
+                                        setShowCompleteProfileModal(true);
+                                    } else {
+                                        setOpenDetailsModal(false);
+                                        setOpenJoinModel(true);
+                                    }
+                                }} style={{ padding: '0.75rem 1.5rem', background: 'black', color: 'white', borderRadius: '0.5rem', border: 'none', cursor: 'pointer' }}>
                                     Request to Join
                                 </button>
                             )}
@@ -315,13 +321,27 @@ const ForYou = () => {
                             ) : isFull ? (
                                 <button className="browse--request" disabled style={{ background: '#27272a', color: '#71717a', cursor: 'not-allowed' }}>Team Full</button>
                             ) : (
-                                <button className="browse--request" onClick={(e) => { e.stopPropagation(); setSelectedTeam(team); setOpenJoinModel(true); }}>Request to Join</button>
+                                <button className="browse--request" onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    if (!profileCompleted) {
+                                        setShowCompleteProfileModal(true);
+                                    } else {
+                                        setSelectedTeam(team);
+                                        setOpenJoinModel(true);
+                                    }
+                                }}>Request to Join</button>
                             )}
                         </div>
                     );
                 })}
                 {forYouTeams.length === 0 && <p className="no-results">No recommendations yet. Complete your profile!</p>}
             </div>
+
+            {/* Complete Profile Modal */}
+            <CompleteProfileModal 
+                isOpen={showCompleteProfileModal}
+                onClose={() => setShowCompleteProfileModal(false)}
+            />
         </div>
     );
 };

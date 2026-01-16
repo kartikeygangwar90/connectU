@@ -33,17 +33,17 @@ const ProfileView = () => {
     // Open Profile Edit Modal
     const openProfileEditModal = () => {
         setProfileData({
-            fullName: userProfile.fullName || "",
-            bio: userProfile.bio || "",
-            phone: userProfile.phone || "",
-            pemail: userProfile.pemail || "",
-            nitpemail: userProfile.nitpemail || "",
-            availability: userProfile.availability || "",
-            technicalSkills: userProfile.technicalSkills || [],
-            softSkills: userProfile.softSkills || [],
-            experience: userProfile.experience || "",
-            year: userProfile.year || "",
-            branch: userProfile.branch || ""
+            fullName: userProfile?.fullName || "",
+            bio: userProfile?.bio || "",
+            phone: userProfile?.phone || "",
+            pemail: userProfile?.pemail || "",
+            nitpemail: userProfile?.nitpemail || "",
+            availability: userProfile?.availability || "",
+            technicalSkills: userProfile?.technicalSkills || [],
+            softSkills: userProfile?.softSkills || [],
+            experience: userProfile?.experience || "",
+            year: userProfile?.year || "",
+            branch: userProfile?.branch || ""
         });
         setEditingProfile(true);
     };
@@ -83,7 +83,10 @@ const ProfileView = () => {
         if (!auth.currentUser) return;
         setSavingProfile(true);
         try {
-            await updateDoc(doc(dataBase, "users", auth.currentUser.uid), profileData);
+            await updateDoc(doc(dataBase, "users", auth.currentUser.uid), {
+                ...profileData,
+                profileCompleted: true // Ensure this flag is set
+            });
             alert("Profile updated successfully!");
             closeProfileEditModal();
             window.location.reload();
@@ -173,7 +176,77 @@ const ProfileView = () => {
         }
     };
 
-    if (!userProfile) return <div className="loading">Loading Profile...</div>;
+    if (!userProfile) {
+        return (
+            <div className="profile--section" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '60vh',
+                textAlign: 'center',
+                gap: '1.5rem'
+            }}>
+                <div style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '1.5rem',
+                    padding: '3rem 2rem',
+                    maxWidth: '500px',
+                    width: '90%'
+                }}>
+                    <h1 className="section--heading" style={{ fontSize: '2rem', marginBottom: '1rem' }}>Welcome to ConnectU! 🚀</h1>
+                    <p className="section--desc" style={{ fontSize: '1.1rem', marginBottom: '2rem' }}>
+                        Your profile is your digital identity here. Complete it to unlock the full potential of ConnectU:
+                    </p>
+                    <ul style={{
+                        textAlign: 'left',
+                        color: '#a1a1aa',
+                        marginBottom: '2.5rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.8rem',
+                        listStyle: 'none'
+                    }}>
+                        <li>✨ Showcase your skills and projects</li>
+                        <li>👥 Find the perfect teammates</li>
+                        <li>📅 Join exciting events and hackathons</li>
+                        <li>🔍 Get discovered by others</li>
+                    </ul>
+                    <button
+                        className="edit--clicked"
+                        onClick={openProfileEditModal}
+                        style={{
+                            fontSize: '1.1rem',
+                            padding: '0.8rem 2rem',
+                            width: '100%',
+                            background: 'white',
+                            color: 'black',
+                            fontWeight: '600'
+                        }}
+                    >
+                        Complete Profile Now
+                    </button>
+                </div>
+
+                {/* Profile Edit Modal - Required here as well since we return early */}
+                {editingProfile && (
+                    <ProfileEditModal
+                        profileData={profileData}
+                        setProfileData={setProfileData}
+                        profileSkillInput={profileSkillInput}
+                        setProfileSkillInput={setProfileSkillInput}
+                        toggleProfileTechSkill={toggleProfileTechSkill}
+                        toggleProfileSoftSkill={toggleProfileSoftSkill}
+                        handleSaveProfile={handleSaveProfile}
+                        closeProfileEditModal={closeProfileEditModal}
+                        savingProfile={savingProfile}
+                    />
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="profile--section">

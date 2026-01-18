@@ -51,10 +51,10 @@ function Access() {
         const snap = await getDoc(userRef);
 
         if (snap.exists() && snap.data().profileCompleted) {
-          navigate("/app/events", { replace: true });
+          navigate("/home", { replace: true });
         } else {
           // Allow browsing without completed profile
-          navigate("/app/events", { replace: true });
+          navigate("/home", { replace: true });
         }
       }
     };
@@ -86,7 +86,7 @@ function Access() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success('Welcome back!');
-      navigate("/app/events", { replace: true });
+      navigate("/home", { replace: true });
     } catch (error) {
       if (error.code === "auth/user-not-found") {
         setError("No account found with this email");
@@ -128,7 +128,7 @@ function Access() {
       await sendEmailVerification(userCredential.user);
       toast.success('Account created! Please check your email to verify your account.');
       // Redirect to app so users can browse immediately
-      navigate("/app/events", { replace: true });
+      navigate("/home", { replace: true });
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         setError("An account with this email already exists");

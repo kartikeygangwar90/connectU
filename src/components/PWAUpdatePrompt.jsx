@@ -3,19 +3,17 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import toast from 'react-hot-toast';
 
 const PWAUpdatePrompt = () => {
-    const [showReload, setShowReload] = useState(false);
-
     const {
         needRefresh: [needRefresh, setNeedRefresh],
         updateServiceWorker,
     } = useRegisterSW({
         onRegisteredSW(swUrl, r) {
             console.log('SW Registered:', swUrl);
-            // Check for updates every 30 seconds
+            // Check for updates every 60 seconds (increased from 30)
             if (r) {
                 setInterval(() => {
                     r.update();
-                }, 30 * 1000);
+                }, 60 * 1000);
             }
         },
         onRegisterError(error) {
@@ -23,16 +21,34 @@ const PWAUpdatePrompt = () => {
         },
     });
 
+    const handleUpdate = async () => {
+        if ('serviceWorker' in navigator) {
+            // Wait for the controlling service worker to change
+            // This is the reliable signal that the new SW has taken over
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+
+            // Send the skip waiting message
+            updateServiceWorker(true);
+        } else {
+            // Fallback for weird edge cases or dev environment
+            updateServiceWorker(true);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    };
+
     useEffect(() => {
         if (needRefresh) {
-            setShowReload(true);
             toast(
                 (t) => (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <span>🔄 New version available!</span>
                         <button
                             onClick={() => {
-                                updateServiceWorker(true);
+                                handleUpdate();
                                 toast.dismiss(t.id);
                             }}
                             style={{
@@ -52,62 +68,13 @@ const PWAUpdatePrompt = () => {
                 {
                     duration: Infinity,
                     id: 'pwa-update',
+                    position: 'top-center', // Moved to top as requested
                 }
             );
         }
     }, [needRefresh, updateServiceWorker]);
 
-    // Also show a persistent banner
-    if (showReload) {
-        return (
-            <div style={{
-                position: 'fixed',
-                bottom: '1rem',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: '#1f2937',
-                padding: '0.75rem 1.5rem',
-                borderRadius: '0.75rem',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                zIndex: 9999,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-            }}>
-                <span style={{ color: 'white' }}>🆕 Update available</span>
-                <button
-                    onClick={() => {
-                        updateServiceWorker(true);
-                        setShowReload(false);
-                    }}
-                    style={{
-                        background: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 600
-                    }}
-                >
-                    Refresh Now
-                </button>
-                <button
-                    onClick={() => setShowReload(false)}
-                    style={{
-                        background: 'transparent',
-                        color: '#9ca3af',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '1.25rem'
-                    }}
-                >
-                    ×
-                </button>
-            </div>
-        );
-    }
+    // Removed the persistent banner as requested, only using Toast now.
 
     return null;
 };

@@ -22,7 +22,16 @@ service cloud.firestore {
           (request.resource.data.categoryInterests is list && request.resource.data.categoryInterests.size() <= 6)) &&
         // Activities validation (max 20 activities)
         (!('activities' in request.resource.data) || 
-          (request.resource.data.activities is list && request.resource.data.activities.size() <= 20));
+          (request.resource.data.activities is list && request.resource.data.activities.size() <= 20)) &&
+        // FCM token validation (if present) - must be string with reasonable length
+        (!('fcmToken' in request.resource.data) || 
+          (request.resource.data.fcmToken is string && request.resource.data.fcmToken.size() <= 500)) &&
+        // Notifications enabled flag validation (if present)
+        (!('notificationsEnabled' in request.resource.data) || 
+          request.resource.data.notificationsEnabled is bool) &&
+        // GitHub username validation (if present) - max 39 chars per GitHub's limit
+        (!('githubUsername' in request.resource.data) || 
+          (request.resource.data.githubUsername is string && request.resource.data.githubUsername.size() <= 39));
     }
     
     // Teams collection - authenticated users can read and write
@@ -58,12 +67,26 @@ service cloud.firestore {
     }
     
     // Notifications collection
-    // - Users can read notifications sent TO them
-    // - Any authenticated user can create a notification
+    // - Users can read notifications sent TO them OR sent BY them (for tracking sent requests)
+    // - Authenticated users can create notifications with sender validation
     // - Only the recipient can update/delete their notifications
     match /notifications/{notificationId} {
-      allow read: if request.auth != null && resource.data.toUserId == request.auth.uid;
-      allow create: if request.auth != null;
+      // Allow read if user is recipient OR sender (to track their sent requests)
+      allow read: if request.auth != null && 
+        (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid);
+      
+      // Create validation: sender must be the authenticated user
+      allow create: if request.auth != null &&
+        // Ensure fromUserId matches authenticated user (prevent spoofing)
+        request.resource.data.fromUserId == request.auth.uid &&
+        // Required fields validation
+        request.resource.data.toUserId is string &&
+        request.resource.data.type is string &&
+        // Message length limit (prevent abuse)
+        (!('message' in request.resource.data) || 
+          (request.resource.data.message is string && request.resource.data.message.size() <= 1000));
+      
+      // Only recipient can update/delete
       allow update, delete: if request.auth != null && resource.data.toUserId == request.auth.uid;
     }
   }

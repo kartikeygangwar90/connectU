@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useOutletContext, useNavigate } from "react-router-dom";
+import { useOutletContext } from "react-router-dom";
 import { addDoc, collection, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { dataBase, auth } from "../../firebase";
 import { sendJoinRequestEmail } from "../../utils/emailService";
@@ -8,7 +8,7 @@ import CompleteProfileModal from "../../components/modals/CompleteProfileModal";
 
 const ForYou = () => {
     const { teams, userProfile, allUsers, profileCompleted } = useOutletContext();
-    const navigate = useNavigate();
+
 
     // Helper to check profile completion before restricted actions
     const requireProfile = () => {
@@ -226,7 +226,7 @@ const ForYou = () => {
                             <button onClick={() => setOpenDetailsModal(false)} style={{ padding: '0.75rem 1.5rem', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', borderRadius: '0.5rem', cursor: 'pointer', color: 'white' }}>Close</button>
                             {/* Hide join button if team is full or user already a member */}
                             {!selectedTeam.members?.includes(auth.currentUser?.uid) && (selectedTeam.members?.length || 1) < parseInt(selectedTeam.teamSize) && (
-                                <button onClick={() => { 
+                                <button onClick={() => {
                                     if (!profileCompleted) {
                                         setOpenDetailsModal(false);
                                         setShowCompleteProfileModal(true);
@@ -321,8 +321,8 @@ const ForYou = () => {
                             ) : isFull ? (
                                 <button className="browse--request" disabled style={{ background: '#27272a', color: '#71717a', cursor: 'not-allowed' }}>Team Full</button>
                             ) : (
-                                <button className="browse--request" onClick={(e) => { 
-                                    e.stopPropagation(); 
+                                <button className="browse--request" onClick={(e) => {
+                                    e.stopPropagation();
                                     if (!profileCompleted) {
                                         setShowCompleteProfileModal(true);
                                     } else {
@@ -338,7 +338,7 @@ const ForYou = () => {
             </div>
 
             {/* Complete Profile Modal */}
-            <CompleteProfileModal 
+            <CompleteProfileModal
                 isOpen={showCompleteProfileModal}
                 onClose={() => setShowCompleteProfileModal(false)}
             />

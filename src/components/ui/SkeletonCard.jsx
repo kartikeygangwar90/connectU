@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const SkeletonCard = ({ type = 'team' }) => {
     if (type === 'user') {
@@ -41,6 +42,10 @@ const SkeletonCard = ({ type = 'team' }) => {
     );
 };
 
+SkeletonCard.propTypes = {
+    type: PropTypes.oneOf(['team', 'user'])
+};
+
 // Multiple skeletons for grid display
 export const SkeletonGrid = ({ count = 3, type = 'team' }) => {
     return (
@@ -50,6 +55,11 @@ export const SkeletonGrid = ({ count = 3, type = 'team' }) => {
             ))}
         </>
     );
+};
+
+SkeletonGrid.propTypes = {
+    count: PropTypes.number,
+    type: PropTypes.oneOf(['team', 'user'])
 };
 
 export default SkeletonCard;

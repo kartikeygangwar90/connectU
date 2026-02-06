@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const EmptyState = ({
     icon = '📭',
@@ -21,6 +22,14 @@ const EmptyState = ({
             )}
         </div>
     );
+};
+
+EmptyState.propTypes = {
+    icon: PropTypes.string,
+    title: PropTypes.string,
+    description: PropTypes.string,
+    actionText: PropTypes.string,
+    onAction: PropTypes.func
 };
 
 export default EmptyState;

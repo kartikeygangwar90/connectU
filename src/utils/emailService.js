@@ -46,7 +46,7 @@ export const sendJoinRequestEmail = async (leaderEmail, leaderName, candidate, t
             PUBLIC_KEY
         );
 
-        console.log("Join Request Email sent successfully!", result);
+
         return result;
     } catch (error) {
         console.error("Failed to send join email:", error);
@@ -92,7 +92,7 @@ export const sendInviteEmail = async (candidateEmail, candidateName, leader, tea
             PUBLIC_KEY
         );
 
-        console.log("Invite Email sent successfully!", result);
+
         return result;
     } catch (error) {
         console.error("Failed to send invite email:", error);

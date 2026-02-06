@@ -1,21 +1,43 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { doc, getDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "firebase/firestore";
 import { auth, dataBase } from "../../firebase";
 import { TeamContext } from "../../context/TeamContext";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import NotificationPrompt from "../NotificationPrompt";
 import "../../style.css"; // Reuse existing styles
 
 const DashboardLayout = () => {
     const { teams, events } = useContext(TeamContext);
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // State
     const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [searchBySkill, setSearchBySkill] = useState(false);
+    const [isDataLoading, setIsDataLoading] = useState(true); // For skeleton loaders
+
+    // Search State managed by URL
+    const searchQuery = searchParams.get("q") || "";
+    const searchBySkill = searchParams.get("skill") === "true";
+
+    const setSearchQuery = (val) => {
+        setSearchParams(prev => {
+            if (val) prev.set("q", val);
+            else prev.delete("q");
+            return prev;
+        }, { replace: true });
+    };
+
+    const setSearchBySkill = (val) => {
+        setSearchParams(prev => {
+            if (val) prev.set("skill", "true");
+            else prev.delete("skill");
+            return prev;
+        }, { replace: true });
+    };
+
     const [userProfile, setUserProfile] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
@@ -28,13 +50,9 @@ const DashboardLayout = () => {
     const isDiscoverSection = currentPath.includes('/discover');
     const isProfileSection = currentPath.includes('/profile');
 
-    // Clear search when changing sections
-    /* eslint-disable react-hooks/set-state-in-effect */
-    useEffect(() => {
-        setSearchQuery("");
-        setSearchBySkill(false);
-    }, [currentPath]);
-    /* eslint-enable react-hooks/set-state-in-effect */
+    // No need to manually clear search on path change because navigating to a new clean URL
+    // via NavLink (e.g. /app/teams) automatically has no query params, so searchQuery becomes empty.
+    // This gives us the desired behavior: Search is persistent on reload, but clears when switching tabs.
 
     // Fetch user profile
     useEffect(() => {
@@ -64,6 +82,8 @@ const DashboardLayout = () => {
                 setAllUsers(usersList);
             } catch (error) {
                 console.error("Error fetching users:", error);
+            } finally {
+                setIsDataLoading(false); // Data fetch complete, hide skeletons
             }
         };
         fetchUsers();
@@ -83,7 +103,7 @@ const DashboardLayout = () => {
                 id: doc.id,
                 ...doc.data(),
             }));
-            console.log("Fetched notifications:", notificationsList.length);
+
             setNotifications(notificationsList);
         }, (error) => {
             console.error("Notification query error:", error);
@@ -249,10 +269,13 @@ const DashboardLayout = () => {
             )}
 
             {/* Child Pages */}
-            <Outlet context={{ userProfile, allUsers, teams, events, searchQuery, searchBySkill, profileCompleted: !!userProfile?.profileCompleted }} />
+            <Outlet context={{ userProfile, allUsers, teams, events, searchQuery, searchBySkill, profileCompleted: !!userProfile?.profileCompleted, isDataLoading }} />
 
             {/* Footer */}
             <Footer />
+
+            {/* Push Notification Permission Prompt */}
+            <NotificationPrompt />
         </div>
     );
 };

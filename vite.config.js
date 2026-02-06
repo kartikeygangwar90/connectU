@@ -40,8 +40,8 @@ export default defineConfig({
         // CRITICAL: Do NOT precache HTML - always fetch from network
         globPatterns: ['**/*.{js,css,ico,png,svg,webp}'],
         // Force new service worker to take control immediately
-        // skipWaiting: true, // Removed to allow manual update flow
-        // clientsClaim: true, // Removed to allow manual update flow
+        skipWaiting: true,
+        clientsClaim: true,
         // Clean old caches
         cleanupOutdatedCaches: true,
         // Navigation requests (HTML pages) should ALWAYS go to network first

@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useOutletContext, useSearchParams, useNavigate } from "react-router-dom";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import { TeamContext } from "../../context/TeamContext";
-import { addDoc, collection, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, doc, getDoc, updateDoc, arrayUnion, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { dataBase, auth } from "../../firebase";
 import { sendJoinRequestEmail } from "../../utils/emailService";
 import toast from "react-hot-toast";
 import CompleteProfileModal from "../../components/modals/CompleteProfileModal";
+import usePagination from "../../hooks/usePagination";
+import PaginationControls from "../../components/ui/PaginationControls";
+import { SkeletonGrid } from "../../components/ui/SkeletonCard";
+import { useBookmarks } from "../../hooks/useBookmarks";
 
 const CATEGORIES = [
     { id: "research", name: "Research" },
@@ -22,10 +26,13 @@ const ESPORTS_ACTIVITIES = ["Valorant", "BGMI", "FIFA", "COD", "Free Fire", "CS2
 const CULTURAL_ACTIVITIES = ["Dance", "Music", "Singing", "Drama", "Art", "Photography", "Content Creation", "Poetry", "Writing", "Painting"];
 
 const Teams = () => {
-    const { teams, events, userProfile, allUsers, profileCompleted } = useOutletContext();
+    const { teams, events, userProfile, allUsers, profileCompleted, isDataLoading } = useOutletContext();
     const { addTeam } = useContext(TeamContext);
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
+
+
+    // Bookmarks Hook
+    const { toggleBookmarkTeam, isTeamBookmarked } = useBookmarks();
 
     // Helper to check profile completion before restricted actions
     const requireProfile = () => {
@@ -39,6 +46,33 @@ const Teams = () => {
     // Filter State
     const eventFilter = searchParams.get("event");
     const [teamChoice, setTeamChoice] = useState(false);
+
+    // Advanced Filters State
+    const [teamFilters, setTeamFilters] = useState({
+        category: searchParams.get('category') || '',
+        sizeRange: searchParams.get('sizeRange') || '',
+        hasOpenSpots: searchParams.get('hasOpenSpots') === 'true'
+    });
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Sync filters with URL
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams);
+
+        if (teamFilters.category) params.set('category', teamFilters.category); else params.delete('category');
+        if (teamFilters.sizeRange) params.set('sizeRange', teamFilters.sizeRange); else params.delete('sizeRange');
+
+        if (teamFilters.hasOpenSpots) {
+            params.set('hasOpenSpots', 'true');
+        } else {
+            params.delete('hasOpenSpots');
+        }
+
+        // Preserve event filter if it existed (though setSearchParams usually merges or replaces? No, it replaces unless we merge)
+        // Actually new URLSearchParams(searchParams) copies the existing ones, so we are good.
+
+        setSearchParams(params, { replace: true });
+    }, [teamFilters, searchParams, setSearchParams]);
 
     // Form State
     const [newTeamName, setNewTeamName] = useState("");
@@ -123,7 +157,7 @@ const Teams = () => {
         if (directJoinId) {
             fetchDirectJoinTeam();
         }
-    }, [directJoinId, teams]);
+    }, [directJoinId, teams, showDirectJoinModal]);
 
     const handleDirectJoin = async () => {
         if (!directJoinTeam || !auth.currentUser) return;
@@ -152,9 +186,9 @@ const Teams = () => {
         setJoiningDirectly(true);
         try {
             const teamRef = doc(dataBase, "teams", directJoinTeam.id);
-            // Add user to members array
+            // Add user to members array using arrayUnion for atomic operation (prevents race condition)
             await updateDoc(teamRef, {
-                members: [...(directJoinTeam.members || []), auth.currentUser.uid]
+                members: arrayUnion(auth.currentUser.uid)
             });
 
             toast.success(`Successfully joined ${directJoinTeam.teamName}! 🎉`);
@@ -270,6 +304,44 @@ const Teams = () => {
 
         setSendingRequest(true);
         try {
+            // Check for cooldown (requests within last 24 hours)
+            const oneDayAgo = new Date();
+            oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+
+            const recentRequestsQuery = query(
+                collection(dataBase, "notifications"),
+                where("type", "==", "join_request"),
+                where("fromUserId", "==", auth.currentUser.uid),
+                where("teamId", "==", selectedTeam.id),
+                where("createdAt", ">", Timestamp.fromDate(oneDayAgo))
+            );
+
+            const recentRequests = await getDocs(recentRequestsQuery);
+
+            if (!recentRequests.empty) {
+                toast.error("You can only send one request to this team every 24 hours.");
+                setOpenJoinModel(false);
+                setSendingRequest(false);
+                return;
+            }
+
+            // Check for existing pending request to prevent duplicates
+            const existingRequestQuery = query(
+                collection(dataBase, "notifications"),
+                where("type", "==", "join_request"),
+                where("fromUserId", "==", auth.currentUser.uid),
+                where("teamId", "==", selectedTeam.id),
+                where("status", "==", "pending")
+            );
+            const existingRequests = await getDocs(existingRequestQuery);
+
+            if (!existingRequests.empty) {
+                toast.error("You already have a pending request for this team.");
+                setOpenJoinModel(false);
+                setSendingRequest(false);
+                return;
+            }
+
             // get user skills
             const userSkills = [...(userProfile.technicalSkills || []), ...(userProfile.softSkills || [])];
 
@@ -324,9 +396,76 @@ const Teams = () => {
         }
     };
 
-    const filteredTeams = eventFilter
-        ? teams.filter((team) => team.eventName?.toLowerCase() === eventFilter.toLowerCase())
-        : teams;
+    // Helper function to clear team filters
+    const clearTeamFilters = () => {
+        setTeamFilters({
+            category: '',
+            sizeRange: '',
+            hasOpenSpots: false
+        });
+    };
+
+    // Check if any filters are active
+    const hasActiveFilters = teamFilters.category || teamFilters.sizeRange || teamFilters.hasOpenSpots;
+    const activeFilterCount = [
+        teamFilters.category,
+        teamFilters.sizeRange,
+        teamFilters.hasOpenSpots
+    ].filter(Boolean).length;
+
+    // Enhanced filter logic
+    const filteredTeams = React.useMemo(() => {
+        let result = teams;
+
+        // Apply event filter from URL
+        if (eventFilter) {
+            result = result.filter(team => team.eventName?.toLowerCase() === eventFilter.toLowerCase());
+        }
+
+        // Apply category filter
+        if (teamFilters.category) {
+            result = result.filter(team => team.category === teamFilters.category);
+        }
+
+        // Apply size range filter
+        if (teamFilters.sizeRange) {
+            const size = parseInt(teamFilters.sizeRange);
+            if (size === 2) { // Small: 2-3
+                result = result.filter(team => parseInt(team.teamSize) <= 3);
+            } else if (size === 4) { // Medium: 4-5
+                result = result.filter(team => {
+                    const teamSize = parseInt(team.teamSize);
+                    return teamSize >= 4 && teamSize <= 5;
+                });
+            } else if (size === 6) { // Large: 6+
+                result = result.filter(team => parseInt(team.teamSize) >= 6);
+            }
+        }
+
+        // Apply open spots filter
+        if (teamFilters.hasOpenSpots) {
+            result = result.filter(team => {
+                const currentMembers = team.members?.length || 1;
+                const maxSize = parseInt(team.teamSize);
+                return currentMembers < maxSize;
+            });
+        }
+
+        return result;
+    }, [teams, eventFilter, teamFilters]);
+
+    // Pagination for teams list (12 per page)
+    const {
+        paginatedItems: paginatedTeams,
+        currentPage,
+        totalPages,
+        totalItems,
+        startIndex,
+        endIndex,
+        goToPage,
+        hasNextPage,
+        hasPrevPage
+    } = usePagination(filteredTeams, 12);
 
     return (
         <div className="teams--section">
@@ -338,7 +477,25 @@ const Teams = () => {
                 }}>
                     <div className="modal-content" style={{ background: '#0a0a0a', padding: '2rem', borderRadius: '1rem', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white' }}>{selectedTeam.teamName}</h2>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', margin: 0 }}>{selectedTeam.teamName}</h2>
+                                <button
+                                    onClick={() => toggleBookmarkTeam(selectedTeam.id)}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: isTeamBookmarked(selectedTeam.id) ? '#fbbf24' : '#52525b',
+                                        fontSize: '1.5rem',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}
+                                    title={isTeamBookmarked(selectedTeam.id) ? "Remove from saved" : "Save team"}
+                                >
+                                    {isTeamBookmarked(selectedTeam.id) ? '★' : '☆'}
+                                </button>
+                            </div>
                             <button onClick={() => setOpenDetailsModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'white' }}>×</button>
                         </div>
 
@@ -779,68 +936,299 @@ const Teams = () => {
             ) : (
                 // BROWSE TEAMS
                 <div className="browse--block">
-                    {filteredTeams.length === 0 ? <p className="no-results">No teams found.</p> : (
-                        <div className="card--section">
-                            {filteredTeams.map(team => {
-                                // Resolve Member Names
-                                const memberNames = allUsers
-                                    .filter(u => team.members?.includes(u.id))
-                                    .map(u => u.fullName)
-                                    .join(", ");
+                    {/* Filter Toggle Button */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.6rem 1rem',
+                                background: hasActiveFilters ? 'white' : '#27272a',
+                                color: hasActiveFilters ? 'black' : 'white',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                borderRadius: '0.5rem',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: 500,
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            🎛️ Filters
+                            {activeFilterCount > 0 && (
+                                <span style={{
+                                    background: hasActiveFilters ? 'black' : 'white',
+                                    color: hasActiveFilters ? 'white' : 'black',
+                                    borderRadius: '50%',
+                                    width: '20px',
+                                    height: '20px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold'
+                                }}>
+                                    {activeFilterCount}
+                                </span>
+                            )}
+                            <span style={{ marginLeft: '0.25rem' }}>{showFilters ? '▲' : '▼'}</span>
+                        </button>
+                    </div>
 
-                                // Resolve Leader Name if not directly available, or just verify
-                                const leaderUser = allUsers.find(u => u.id === team.createdBy);
-                                const leaderName = team.leader || leaderUser?.fullName || "Unknown";
-
-                                const isFull = (team.members?.length || 1) >= parseInt(team.teamSize);
-
-                                return (
-                                    <div
-                                        key={team.id}
-                                        className="team--card"
+                    {/* Filter Panel - Collapsible */}
+                    {showFilters && (
+                        <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '1.5rem',
+                            padding: '1.5rem',
+                            background: '#0a0a0a',
+                            borderRadius: '1rem',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            marginBottom: '1.5rem',
+                            animation: 'fadeIn 0.2s ease'
+                        }}>
+                            {/* Category Filter - Pills */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                                <label style={{ fontSize: '0.85rem', color: '#a1a1aa', fontWeight: 500 }}>Category</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={() => setTeamFilters(prev => ({ ...prev, category: '' }))}
                                         style={{
-                                            position: 'relative',
+                                            padding: '0.5rem 1rem',
+                                            borderRadius: '2rem',
+                                            border: '1px solid rgba(255, 255, 255, 0.2)',
+                                            background: !teamFilters.category ? 'white' : 'transparent',
+                                            color: !teamFilters.category ? 'black' : '#a1a1aa',
                                             cursor: 'pointer',
-                                            opacity: isFull ? 0.6 : 1,
-                                            background: isFull ? '#1a1a1a' : '#0a0a0a'
+                                            fontSize: '0.85rem',
+                                            fontWeight: !teamFilters.category ? 600 : 400,
+                                            transition: 'all 0.2s'
                                         }}
-                                        onClick={() => { setSelectedTeam(team); setOpenDetailsModal(true); }}
                                     >
-                                        {isFull && (
-                                            <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                                FULL
-                                            </div>
-                                        )}
-                                        <h3 className="browse---teamName">{team.teamName}</h3>
-                                        <p className="browse--eventName">🏆 {team.eventName}</p>
+                                        All
+                                    </button>
+                                    {CATEGORIES.map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => setTeamFilters(prev => ({ ...prev, category: cat.name }))}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '2rem',
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                background: teamFilters.category === cat.name ? 'white' : 'transparent',
+                                                color: teamFilters.category === cat.name ? 'black' : '#a1a1aa',
+                                                cursor: 'pointer',
+                                                fontSize: '0.85rem',
+                                                fontWeight: teamFilters.category === cat.name ? 600 : 400,
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {cat.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
-                                        <div style={{ margin: '0.5rem 0', fontSize: '0.9rem', color: '#a1a1aa' }}>
-                                            <p><strong style={{ color: 'white' }}>👑 Leader:</strong> {leaderName}</p>
-                                            <p><strong style={{ color: 'white' }}>📝 Desc:</strong> {team.teamDesc}</p>
-                                            <p><strong style={{ color: 'white' }}>👥 Members ({team.members?.length || 1}/{team.teamSize}):</strong> {memberNames || leaderName}</p>
-                                        </div>
+                            {/* Team Size Filter */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <label style={{ fontSize: '0.85rem', color: '#a1a1aa', fontWeight: 500 }}>Team Size</label>
+                                <select
+                                    value={teamFilters.sizeRange}
+                                    onChange={(e) => setTeamFilters(prev => ({ ...prev, sizeRange: e.target.value }))}
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        background: '#27272a',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        borderRadius: '0.5rem',
+                                        color: 'white',
+                                        fontSize: '0.9rem',
+                                        minWidth: '150px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="">All Sizes</option>
+                                    <option value="2">Small (2-3)</option>
+                                    <option value="4">Medium (4-5)</option>
+                                    <option value="6">Large (6+)</option>
+                                </select>
+                            </div>
 
-                                        <div className="skill--area">{team.skills?.map(s => <span key={s} className="skill--selected">{s}</span>)}</div>
+                            {/* Open Spots Toggle */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <label style={{ fontSize: '0.85rem', color: '#a1a1aa', fontWeight: 500 }}>Availability</label>
+                                <button
+                                    onClick={() => setTeamFilters(prev => ({ ...prev, hasOpenSpots: !prev.hasOpenSpots }))}
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '0.5rem',
+                                        border: teamFilters.hasOpenSpots ? '1px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.2)',
+                                        background: teamFilters.hasOpenSpots ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                                        color: teamFilters.hasOpenSpots ? '#22c55e' : '#a1a1aa',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: teamFilters.hasOpenSpots ? 600 : 400,
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    {teamFilters.hasOpenSpots ? '✓' : '○'} Has Open Spots
+                                </button>
+                            </div>
 
-                                        {team.members?.includes(auth.currentUser?.uid) ? (
-                                            <button className="browse--Request" disabled style={{ background: '#dcfce7', color: '#166534', cursor: 'default' }}>Joined</button>
-                                        ) : isFull ? (
-                                            <button className="browse--Request" disabled style={{ background: '#27272a', color: '#71717a', cursor: 'not-allowed' }}>Team Full</button>
-                                        ) : (
-                                            <button className="browse--Request" onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (!profileCompleted) {
-                                                    setShowCompleteProfileModal(true);
-                                                } else {
-                                                    setSelectedTeam(team);
-                                                    setOpenJoinModel(true);
-                                                }
-                                            }}>Request to Join</button>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                            {/* Clear Filters Button */}
+                            {hasActiveFilters && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                    <button
+                                        onClick={clearTeamFilters}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            background: 'transparent',
+                                            border: '1px solid rgba(239, 68, 68, 0.5)',
+                                            borderRadius: '0.5rem',
+                                            color: '#ef4444',
+                                            cursor: 'pointer',
+                                            fontSize: '0.85rem',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        ✕ Clear Filters
+                                    </button>
+                                </div>
+                            )}
                         </div>
+                    )}
+
+                    {/* Results Count */}
+                    {(hasActiveFilters || eventFilter) && (
+                        <p style={{ color: '#a1a1aa', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                            Showing {filteredTeams.length} {filteredTeams.length === 1 ? 'team' : 'teams'}
+                            {hasActiveFilters && ' with filters applied'}
+                            {eventFilter && ` for "${eventFilter}"`}
+                        </p>
+                    )}
+
+                    {/* Show skeleton loading while data is loading */}
+                    {isDataLoading ? (
+                        <div className="card--section">
+                            <SkeletonGrid count={6} type="team" />
+                        </div>
+                    ) : filteredTeams.length === 0 ? (
+                        <p className="no-results" style={{ textAlign: 'center', color: '#a1a1aa', padding: '2rem' }}>
+                            {hasActiveFilters ? 'No teams found matching your filters. Try adjusting your criteria.' : 'No teams found.'}
+                        </p>
+                    ) : (
+                        <>
+                            <div className="card--section">
+                                {paginatedTeams.map(team => {
+                                    // Resolve Member Names
+                                    const memberNames = allUsers
+                                        .filter(u => team.members?.includes(u.id))
+                                        .map(u => u.fullName)
+                                        .join(", ");
+
+                                    // Resolve Leader Name if not directly available, or just verify
+                                    const leaderUser = allUsers.find(u => u.id === team.createdBy);
+                                    const leaderName = team.leader || leaderUser?.fullName || "Unknown";
+
+                                    const isFull = (team.members?.length || 1) >= parseInt(team.teamSize);
+                                    const spotsLeft = parseInt(team.teamSize) - (team.members?.length || 1);
+                                    const isAlmostFull = !isFull && spotsLeft <= 2 && spotsLeft > 0;
+
+                                    return (
+                                        <div
+                                            key={team.id}
+                                            className="team--card"
+                                            style={{
+                                                position: 'relative',
+                                                cursor: 'pointer',
+                                                opacity: isFull ? 0.6 : 1,
+                                                background: isFull ? '#1a1a1a' : '#0a0a0a'
+                                            }}
+                                            onClick={() => { setSelectedTeam(team); setOpenDetailsModal(true); }}
+                                        >
+                                            {isFull && (
+                                                <div style={{ position: 'absolute', top: '0.5rem', right: '3rem', background: '#ef4444', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                    FULL
+                                                </div>
+                                            )}
+                                            {isAlmostFull && (
+                                                <div style={{ position: 'absolute', top: '0.5rem', right: '3rem', background: '#f59e0b', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                    {spotsLeft === 1 ? '1 Spot Left!' : `${spotsLeft} Spots Left`}
+                                                </div>
+                                            )}
+
+                                            {/* Bookmark Button */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleBookmarkTeam(team.id);
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '0.5rem',
+                                                    right: '0.5rem',
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    color: isTeamBookmarked(team.id) ? '#fbbf24' : '#52525b',
+                                                    fontSize: '1.2rem',
+                                                    cursor: 'pointer',
+                                                    transition: 'transform 0.2s, color 0.2s',
+                                                    zIndex: 2,
+                                                    padding: 0
+                                                }}
+                                                title={isTeamBookmarked(team.id) ? "Remove from saved" : "Save team"}
+                                                onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                                                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                            >
+                                                {isTeamBookmarked(team.id) ? '★' : '☆'}
+                                            </button>
+                                            <h3 className="browse---teamName">{team.teamName}</h3>
+                                            <p className="browse--eventName">🏆 {team.eventName}</p>
+
+                                            <div style={{ margin: '0.5rem 0', fontSize: '0.9rem', color: '#a1a1aa' }}>
+                                                <p><strong style={{ color: 'white' }}>👑 Leader:</strong> {leaderName}</p>
+                                                <p><strong style={{ color: 'white' }}>📝 Desc:</strong> {team.teamDesc}</p>
+                                                <p><strong style={{ color: 'white' }}>👥 Members ({team.members?.length || 1}/{team.teamSize}):</strong> {memberNames || leaderName}</p>
+                                            </div>
+
+                                            <div className="skill--area">{team.skills?.map(s => <span key={s} className="skill--selected">{s}</span>)}</div>
+
+                                            {team.members?.includes(auth.currentUser?.uid) ? (
+                                                <button className="browse--Request" disabled style={{ background: '#dcfce7', color: '#166534', cursor: 'default' }}>Joined</button>
+                                            ) : isFull ? (
+                                                <button className="browse--Request" disabled style={{ background: '#27272a', color: '#71717a', cursor: 'not-allowed' }}>Team Full</button>
+                                            ) : (
+                                                <button className="browse--Request" onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (!profileCompleted) {
+                                                        setShowCompleteProfileModal(true);
+                                                    } else {
+                                                        setSelectedTeam(team);
+                                                        setOpenJoinModel(true);
+                                                    }
+                                                }}>Request to Join</button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Pagination Controls */}
+                            <PaginationControls
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={goToPage}
+                                totalItems={totalItems}
+                                startIndex={startIndex}
+                                endIndex={endIndex}
+                                hasNextPage={hasNextPage}
+                                hasPrevPage={hasPrevPage}
+                            />
+                        </>
                     )}
                 </div>
             )

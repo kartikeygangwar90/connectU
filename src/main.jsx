@@ -12,6 +12,7 @@ import PrivateRoute from "./privateRoute";
 import Policy from "./Terms&Conditions";
 import Home from "./home";
 import PWAUpdatePrompt from "./components/PWAUpdatePrompt";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Create QueryClient with default options
 const queryClient = new QueryClient({
@@ -56,72 +57,90 @@ const LoadingSpinner = () => (
 
 reactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <TeamProvider>
-            {/* Toast notifications */}
-            <Toaster
-              position="top-center"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#1f2937',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                },
-                success: {
-                  iconTheme: { primary: '#22c55e', secondary: '#fff' },
-                },
-                error: {
-                  iconTheme: { primary: '#ef4444', secondary: '#fff' },
-                },
-              }}
-            />
-            {/* PWA Update Prompt */}
-            <PWAUpdatePrompt />
-            <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={<Access />} />
-              <Route path="/profile" element={<ProfileSetup />} />
-              <Route path="/policy" element={<Policy />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <TeamProvider>
+              {/* Toast notifications */}
+              <Toaster
+                position="top-center"
+                containerStyle={{
+                  zIndex: 99999,
+                }}
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#1f2937',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    zIndex: 99999,
+                  },
+                  success: {
+                    iconTheme: { primary: '#22c55e', secondary: '#fff' },
+                  },
+                  error: {
+                    iconTheme: { primary: '#ef4444', secondary: '#fff' },
+                  },
+                }}
+              />
+              {/* PWA Update Prompt */}
+              <PWAUpdatePrompt />
+              <Routes>
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/login" element={<Access />} />
+                <Route path="/profile" element={<ProfileSetup />} />
+                <Route path="/policy" element={<Policy />} />
 
-              <Route path="/home" element={
-                <PrivateRoute><Home /></PrivateRoute>
-              } />
+                <Route path="/home" element={
+                  <PrivateRoute><Home /></PrivateRoute>
+                } />
 
-              {/* Legacy redirect */}
-              <Route path="/mainpage" element={<Navigate to="/app/events" replace />} />
+                {/* Legacy redirect */}
+                <Route path="/mainpage" element={<Navigate to="/app/events" replace />} />
 
-              {/* Dashboard Routes with Lazy Loading */}
-              <Route path="/app" element={
-                <PrivateRoute>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <DashboardLayout />
-                  </Suspense>
-                </PrivateRoute>
-              }>
-                <Route index element={<Navigate to="events" replace />} />
-                <Route path="events" element={
-                  <Suspense fallback={<LoadingSpinner />}><Events /></Suspense>
-                } />
-                <Route path="teams" element={
-                  <Suspense fallback={<LoadingSpinner />}><Teams /></Suspense>
-                } />
-                <Route path="recommendations" element={
-                  <Suspense fallback={<LoadingSpinner />}><ForYou /></Suspense>
-                } />
-                <Route path="profile" element={
-                  <Suspense fallback={<LoadingSpinner />}><ProfileView /></Suspense>
-                } />
-                <Route path="discover" element={
-                  <Suspense fallback={<LoadingSpinner />}><DiscoverTalent /></Suspense>
-                } />
-              </Route>
-            </Routes>
-          </TeamProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+                {/* Dashboard Routes with Lazy Loading */}
+                <Route path="/app" element={
+                  <PrivateRoute>
+                    <ErrorBoundary>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <DashboardLayout />
+                      </Suspense>
+                    </ErrorBoundary>
+                  </PrivateRoute>
+                }>
+                  <Route index element={<Navigate to="events" replace />} />
+                  <Route path="events" element={
+                    <ErrorBoundary variant="inline">
+                      <Suspense fallback={<LoadingSpinner />}><Events /></Suspense>
+                    </ErrorBoundary>
+                  } />
+                  <Route path="teams" element={
+                    <ErrorBoundary variant="inline">
+                      <Suspense fallback={<LoadingSpinner />}><Teams /></Suspense>
+                    </ErrorBoundary>
+                  } />
+                  <Route path="recommendations" element={
+                    <ErrorBoundary variant="inline">
+                      <Suspense fallback={<LoadingSpinner />}><ForYou /></Suspense>
+                    </ErrorBoundary>
+                  } />
+                  <Route path="profile" element={
+                    <ErrorBoundary variant="inline">
+                      <Suspense fallback={<LoadingSpinner />}><ProfileView /></Suspense>
+                    </ErrorBoundary>
+                  } />
+                  <Route path="discover" element={
+                    <ErrorBoundary variant="inline">
+                      <Suspense fallback={<LoadingSpinner />}><DiscoverTalent /></Suspense>
+                    </ErrorBoundary>
+                  } />
+                </Route>
+              </Routes>
+            </TeamProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

@@ -1,27 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import toast from 'react-hot-toast';
 
 const PWAUpdatePrompt = () => {
     const {
-        needRefresh: [needRefresh, setNeedRefresh],
+        needRefresh: [needRefresh],
         updateServiceWorker,
     } = useRegisterSW({
         onRegisteredSW(swUrl, r) {
-            console.log('SW Registered:', swUrl);
-            // Check for updates every 60 seconds (increased from 30)
+
+            // Check for updates every 60 seconds
             if (r) {
+                // Check immediately
+
+                r.update().catch(err => console.error('[PWA] Update check error:', err));
+                // Then check periodically
                 setInterval(() => {
-                    r.update();
+
+                    r.update().catch(err => console.error('[PWA] Update check error:', err));
                 }, 60 * 1000);
             }
         },
         onRegisterError(error) {
-            console.log('SW registration error:', error);
+            console.error('[PWA] SW registration error:', error);
         },
     });
 
-    const handleUpdate = async () => {
+    const handleUpdate = useCallback(async () => {
         if ('serviceWorker' in navigator) {
             // Wait for the controlling service worker to change
             // This is the reliable signal that the new SW has taken over
@@ -38,16 +43,18 @@ const PWAUpdatePrompt = () => {
                 window.location.reload();
             }, 1000);
         }
-    };
+    }, [updateServiceWorker]);
 
     useEffect(() => {
         if (needRefresh) {
+
             toast(
                 (t) => (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <span>🔄 New version available!</span>
+                        <span style={{ fontWeight: 500 }}>🔄 New version available!</span>
                         <button
                             onClick={() => {
+
                                 handleUpdate();
                                 toast.dismiss(t.id);
                             }}
@@ -61,18 +68,25 @@ const PWAUpdatePrompt = () => {
                                 fontWeight: 600
                             }}
                         >
-                            Update
+                            Update Now
                         </button>
                     </div>
                 ),
                 {
                     duration: Infinity,
                     id: 'pwa-update',
-                    position: 'top-center', // Moved to top as requested
+                    position: 'top-center',
+                    style: {
+                        background: '#1e293b',
+                        color: '#fff',
+                        border: '2px solid #3b82f6',
+                        padding: '16px',
+                        boxShadow: '0 10px 40px rgba(59, 130, 246, 0.3)',
+                    },
                 }
             );
         }
-    }, [needRefresh, updateServiceWorker]);
+    }, [needRefresh, updateServiceWorker, handleUpdate]);
 
     // Removed the persistent banner as requested, only using Toast now.
 

@@ -11,9 +11,12 @@ import {
     deleteDoc,
     doc,
     getDocs,
-    where
+    getDoc,
+    where,
+    updateDoc,
+    arrayRemove
 } from "firebase/firestore";
-import { dataBase, auth } from "../firebase";
+import { dataBase } from "../firebase";
 import { useAuth } from "../AuthContext";
 
 export const TeamContext = createContext();
@@ -47,7 +50,7 @@ export const TeamProvider = ({ children }) => {
             setTeams(teamList);
             setLoadingTeams(false);
         }, (err) => {
-            console.log("Error fetching teams", err);
+            console.error("Error fetching teams", err);
             setLoadingTeams(false);
         });
 
@@ -77,7 +80,7 @@ export const TeamProvider = ({ children }) => {
             setEvents(eventList);
             setLoadingEvents(false);
         }, (err) => {
-            console.log("Error fetching events", err);
+            console.error("Error fetching events", err);
             setLoadingEvents(false);
         });
 
@@ -118,7 +121,7 @@ export const TeamProvider = ({ children }) => {
                     // Delete the event itself
                     await deleteDoc(doc(dataBase, "events", eventDoc.id));
 
-                    console.log(`🧹 Cleaned up expired event: ${eventData.name} (deadline: ${eventData.deadline})`);
+
                 }
             }
         } catch (error) {
@@ -135,8 +138,7 @@ export const TeamProvider = ({ children }) => {
     }, [user]);
 
     const addTeam = async (teamData, eventData = null) => {
-        console.log("Attempting to add team. Current User:", user);
-        console.log("Auth Object CurrentUser:", auth.currentUser);
+
 
         if (!user) {
             console.error("User is not logged in according to Context.");
@@ -176,8 +178,139 @@ export const TeamProvider = ({ children }) => {
         }
     };
 
+    // Leave team - removes current user from team members
+    const leaveTeam = async (teamId) => {
+        if (!user) return { success: false, error: { message: "User not logged in" } };
+
+        try {
+            const teamRef = doc(dataBase, "teams", teamId);
+            const teamSnap = await getDoc(teamRef);
+
+            if (!teamSnap.exists()) {
+                return { success: false, error: { message: "Team not found" } };
+            }
+
+            const teamData = teamSnap.data();
+
+            // Check if user is the leader - leaders should transfer or delete instead
+            if (teamData.createdBy === user.uid) {
+                return { success: false, error: { message: "Team leaders cannot leave. Transfer leadership or delete the team instead." } };
+            }
+
+            // Remove user from members array
+            await updateDoc(teamRef, {
+                members: arrayRemove(user.uid)
+            });
+
+            return { success: true };
+        } catch (error) {
+            console.error("Error leaving team:", error);
+            return { success: false, error };
+        }
+    };
+
+    // Delete team - only callable by team leader
+    const deleteTeam = async (teamId) => {
+        if (!user) return { success: false, error: { message: "User not logged in" } };
+
+        try {
+            const teamRef = doc(dataBase, "teams", teamId);
+            const teamSnap = await getDoc(teamRef);
+
+            if (!teamSnap.exists()) {
+                return { success: false, error: { message: "Team not found" } };
+            }
+
+            const teamData = teamSnap.data();
+
+            // Only leader can delete
+            if (teamData.createdBy !== user.uid) {
+                return { success: false, error: { message: "Only the team leader can delete this team" } };
+            }
+
+            // Delete related pending notifications
+            const pendingNotifsQuery = query(
+                collection(dataBase, "notifications"),
+                where("teamId", "==", teamId)
+            );
+            const notifDocs = await getDocs(pendingNotifsQuery);
+            await Promise.all(notifDocs.docs.map(d => deleteDoc(d.ref)));
+
+            // Delete the team
+            await deleteDoc(teamRef);
+
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting team:", error);
+            return { success: false, error };
+        }
+    };
+
+    // Transfer leadership to another team member
+    const transferLeadership = async (teamId, newLeaderId) => {
+        if (!user) return { success: false, error: { message: "User not logged in" } };
+
+        try {
+            const teamRef = doc(dataBase, "teams", teamId);
+            const teamSnap = await getDoc(teamRef);
+
+            if (!teamSnap.exists()) {
+                return { success: false, error: { message: "Team not found" } };
+            }
+
+            const teamData = teamSnap.data();
+
+            // Verify current user is the leader
+            if (teamData.createdBy !== user.uid) {
+                return { success: false, error: { message: "Only the current leader can transfer leadership" } };
+            }
+
+            // Verify new leader is a team member
+            if (!teamData.members?.includes(newLeaderId)) {
+                return { success: false, error: { message: "New leader must be a team member" } };
+            }
+
+            // Get new leader's name for notification
+            const newLeaderRef = doc(dataBase, "users", newLeaderId);
+            const newLeaderSnap = await getDoc(newLeaderRef);
+            const newLeaderName = newLeaderSnap.exists() ? newLeaderSnap.data().fullName : "A member";
+
+            // Update team leadership
+            await updateDoc(teamRef, {
+                createdBy: newLeaderId,
+                leader: newLeaderName
+            });
+
+            // Notify new leader
+            await addDoc(collection(dataBase, "notifications"), {
+                type: "leadership_transfer",
+                toUserId: newLeaderId,
+                fromUserId: user.uid,
+                teamId: teamId,
+                teamName: teamData.teamName,
+                message: `You are now the leader of "${teamData.teamName}"!`,
+                createdAt: serverTimestamp(),
+                read: false
+            });
+
+            return { success: true };
+        } catch (error) {
+            console.error("Error transferring leadership:", error);
+            return { success: false, error };
+        }
+    };
+
     return (
-        <TeamContext.Provider value={{ teams, events, addTeam, loadingTeams, loadingEvents }}>
+        <TeamContext.Provider value={{
+            teams,
+            events,
+            addTeam,
+            leaveTeam,
+            deleteTeam,
+            transferLeadership,
+            loadingTeams,
+            loadingEvents
+        }}>
             {children}
         </TeamContext.Provider>
     );

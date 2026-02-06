@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const ToastContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useToast = () => {
     const context = useContext(ToastContext);
     if (!context) {
@@ -12,6 +13,17 @@ export const useToast = () => {
 
 export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
+
+    const dismissToast = useCallback((id) => {
+        setToasts(prev => prev.map(toast =>
+            toast.id === id ? { ...toast, exiting: true } : toast
+        ));
+
+        // Remove after animation
+        setTimeout(() => {
+            setToasts(prev => prev.filter(toast => toast.id !== id));
+        }, 200);
+    }, []);
 
     const showToast = useCallback(({ type = 'info', title, message, duration = 4000 }) => {
         const id = Date.now() + Math.random();
@@ -25,18 +37,7 @@ export const ToastProvider = ({ children }) => {
         }, duration);
 
         return id;
-    }, []);
-
-    const dismissToast = useCallback((id) => {
-        setToasts(prev => prev.map(toast =>
-            toast.id === id ? { ...toast, exiting: true } : toast
-        ));
-
-        // Remove after animation
-        setTimeout(() => {
-            setToasts(prev => prev.filter(toast => toast.id !== id));
-        }, 200);
-    }, []);
+    }, [dismissToast]);
 
     // Convenience methods
     const success = useCallback((title, message) => {

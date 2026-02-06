@@ -5,7 +5,10 @@ import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    signOut
+    signOut,
+    GoogleAuthProvider,
+    GithubAuthProvider,
+    signInWithPopup
 } from "firebase/auth";
 import { auth } from "./firebase";
 
@@ -13,6 +16,15 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { dataBase } from "./firebase";
 
 const AuthContext = createContext();
+
+// Initialize OAuth providers
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+    prompt: 'select_account' // Always show account picker
+});
+
+const githubProvider = new GithubAuthProvider();
+githubProvider.addScope('user:email'); // Request email access
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = React.useState(null);
@@ -24,6 +36,16 @@ export const AuthProvider = ({ children }) => {
 
     const login = (email, password) => {
         return signInWithEmailAndPassword(auth, email, password);
+    }
+
+    const loginWithGoogle = async () => {
+        const result = await signInWithPopup(auth, googleProvider);
+        return result;
+    }
+
+    const loginWithGithub = async () => {
+        const result = await signInWithPopup(auth, githubProvider);
+        return result;
     }
 
     const logOut = () => {
@@ -41,11 +63,27 @@ export const AuthProvider = ({ children }) => {
 
                     // creating doc for first time ----->
                     if (!snap.exists()) {
+                        // Get display name and photo from OAuth provider (if available)
+                        const displayName = currentUser.displayName || "";
+                        const photoURL = currentUser.photoURL || "";
+
                         await setDoc(userRef, {
                             email: currentUser.email,
+                            fullName: displayName,
+                            photoURL: photoURL,
                             profileCompleted: false,
                             createdAt: serverTimestamp(),
+                            // Store auth provider info
+                            authProvider: currentUser.providerData[0]?.providerId || "email"
                         });
+                    } else {
+                        // If user exists but doesn't have photoURL, update it from OAuth
+                        const userData = snap.data();
+                        if (!userData.photoURL && currentUser.photoURL) {
+                            await setDoc(userRef, {
+                                photoURL: currentUser.photoURL
+                            }, { merge: true });
+                        }
                     }
                 }
             } catch (error) {
@@ -63,6 +101,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         login,
         signup,
+        loginWithGoogle,
+        loginWithGithub,
         logOut
     };
 
